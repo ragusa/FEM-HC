@@ -3,19 +3,18 @@ function F=driver
 % clear the console screen
 clc; close all;clf
 % load the data structure with info pertaining to the physical problem
-dat.diff=@diffu;
-dat.siga=@siga;
+dat.condu=@condu;
 dat.esrc=@esrc;
 dat.width=100;
 bc.left.type=2; %0=neumann, 1=robin, 2=dirichlet
-bc.left.C=0; % (that data is C in: -Ddu/dn=C // u/4+D/2du/dn=C // u=C)
+bc.left.C=30; % (that data is C in: -Ddu/dn=C // u/4+D/2du/dn=C // u=C)
 bc.rite.type=2;
-bc.rite.C=0;
+bc.rite.C=20;
 dat.bc=bc; clear bc;
 
 % load the numerical parameters, npar, structure pertaining to numerics
 % number of elements
-npar.nel = 5000;
+npar.nel = 20;
 % domain
 npar.x = linspace(0,dat.width,npar.nel+1);
 % polynomial degree
@@ -36,7 +35,7 @@ F = solve_fem3(dat,npar);
 figure(1)
 plot(npar.x,F,'.-'); hold all
 % % verification is always good
-% verif_diff_eq(dat)
+verif_hc_eq(dat)
 
 return
 end
@@ -101,13 +100,12 @@ for iel=1:npar.nel
     Jac=(x1-x0)/2;
     % get x values in the interval
     x=(x1+x0)/2+xq*(x1-x0)/2;
-    d=dat.diff(x);
-    s=dat.siga(x);
+    d=dat.condu(x);
     q=dat.esrc(x);
     % compute local matrices + load vector
     for i=1:porder+1
         for j=1:porder+1
-            m(i,j)= dot(s.*wq.*b(:,i)    , b(:,j));
+            m(i,j)= dot(0.*wq.*b(:,i)    , b(:,j));
             k(i,j)= dot(d.*wq.*dbdx(:,i) , dbdx(:,j));
         end
         f(i)= dot(q.*wq, b(:,i));
@@ -229,60 +227,53 @@ return
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% function verif_diff_eq(dat)
-% 
-% sa=dat.siga; cd=dat.diff; src=dat.esrc; L=dat.width;
-% 
-% k=1/sqrt(cd/sa);
-% % particular solution
-% part=src/sa;
-% % general form of the solution:
-% %  phi =A sh(kx) + B ch(kx) + src/abso
-% %  dphi/dx= k (A ch(kx) + B sh(kx) )
-% switch dat.bc.left.type
-%     case 0 % Neumann
-%         mat(1,1:2) =k*[ cosh(0), sinh(0)];
-%         b(1) = -dat.bc.left.C / cd;
-%     case 1 % Robin
-%         mat(1,1:2) =[ sinh(0), cosh(0)]/4 -cd/2*k*[ cosh(0), sinh(0)];
-%         b(1) = dat.bc.left.C -part/4;
-%     case 2 % Dirichlet
-%         mat(1,1:2) =[ sinh(0), cosh(0)];
-%         b(1) = dat.bc.left.C -part;
-% end
-% switch dat.bc.rite.type
-%     case 0 % Neumann
-%         mat(2,1:2) =k*[ cosh(k*L), sinh(k*L)];
-%         b(2) = dat.bc.rite.C / cd;
-%     case 1 % Robin
-%         mat(2,1:2) =[ sinh(k*L), cosh(k*L)]/4 +cd/2*k*[ cosh(k*L), sinh(k*L)];
-%         b(2) = dat.bc.rite.C -part/4;
-%     case 2 % Dirichlet
-%         mat(2,1:2) =[ sinh(k*L), cosh(k*L)];
-%         b(2) = dat.bc.rite.C -part;
-% end
-% % get coefficient for the analytical solution
-% a=mat\b';
-% x=linspace(0,L);
-% y=a(1)*sinh(k*x)+a(2)*cosh(k*x)+part;
-% plot(x,y,'r-');hold all
-% 
-% return
-% end
+function verif_hc_eq(dat)
+
+cd=dat.condu; src=dat.esrc; L=dat.width;
+
+% general form of the solution:
+% T = Y x x + B x + E
+% dT/dx= 2Yx + B
+Y=-src(1)/(2*cd(1));
+switch dat.bc.left.type
+    case 0 % Neumann
+        mat(1,1:2) =[1,0];
+        b(1) = -dat.bc.left.C / cd(0);
+    case 1 % Robin
+        mat(1,1:2) =[cd(0)/2,1/4];
+        b(1) = dat.bc.left.C;
+    case 2 % Dirichlet
+        mat(1,1:2) =[0,1];
+        b(1) = dat.bc.left.C;
+end
+switch dat.bc.rite.type
+    case 0 % Neumann
+        mat(2,1:2) =[1,0];
+        b(2) = -dat.bc.rite.C / cd(1) - 2*Y*L;
+    case 1 % Robin
+        mat(2,1:2) =[L/4+cd(1)/2,1/4];
+        b(2) = dat.bc.rite.C - Y*L*L/4 -cd(1)*Y*L;
+    case 2 % Dirichlet
+        mat(2,1:2) =[L,1];
+        b(2) = dat.bc.rite.C - Y*L*L;
+end
+% get coefficient for the analytical solution
+a=mat\b';
+x=linspace(0,L);
+y=Y*(x.^2)+a(1)*x+a(2);
+plot(x,y,'r-');hold all
+
+return
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function y=diffu(x);
-y=1+0.5*x.^2;
+function y=condu(x)
+y=5;
 return
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function y=siga(x);
-y=x;
-return
-end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function y=esrc(x);
-y=x;
+function y=esrc(x)
+y=10;
 return
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
