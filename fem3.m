@@ -5,16 +5,16 @@ clc; close all;clf
 % load the data structure with info pertaining to the physical problem
 dat.condu=@condu;
 dat.esrc=@esrc;
-dat.width=100;
+dat.width=10;
 bc.left.type=2; %0=neumann, 1=robin, 2=dirichlet
-bc.left.C=30; % (that data is C in: -Ddu/dn=C // u/4+D/2du/dn=C // u=C)
-bc.rite.type=2;
-bc.rite.C=20;
+bc.left.C=7; % (that data is C in: +Ddu/dn=C // u/4+D/2du/dn=C // u=C)
+bc.rite.type=1;
+bc.rite.C=1;
 dat.bc=bc; clear bc;
 
 % load the numerical parameters, npar, structure pertaining to numerics
 % number of elements
-npar.nel = 20;
+npar.nel = 10;
 % domain
 npar.x = linspace(0,dat.width,npar.nel+1);
 % polynomial degree
@@ -237,10 +237,13 @@ cd=dat.condu; src=dat.esrc; L=dat.width;
 Y=-src(1)/(2*cd(1));
 switch dat.bc.left.type
     case 0 % Neumann
+        % +Ddu/dn=C on the left becomes: -Ddu/dx=C <==> -D.B=C <==> B=-C/D
         mat(1,1:2) =[1,0];
         b(1) = -dat.bc.left.C / cd(0);
     case 1 % Robin
-        mat(1,1:2) =[cd(0)/2,1/4];
+        % u/4+D/2du/dn=C on the left becomes: u/4-D/2du/dx=C 
+        % <==> E/4-D/2(B)=C 
+        mat(1,1:2) =[-cd(0)/2,1/4];
         b(1) = dat.bc.left.C;
     case 2 % Dirichlet
         mat(1,1:2) =[0,1];
@@ -248,11 +251,14 @@ switch dat.bc.left.type
 end
 switch dat.bc.rite.type
     case 0 % Neumann
+        % +Ddu/dn=C on the right becomes: Ddu/dx=C <==> D.(2YL+B)=C <==> B=C/D-2YL
         mat(2,1:2) =[1,0];
-        b(2) = -dat.bc.rite.C / cd(1) - 2*Y*L;
+        b(2) = dat.bc.rite.C / cd(L) - 2*Y*L;
     case 1 % Robin
-        mat(2,1:2) =[L/4+cd(1)/2,1/4];
-        b(2) = dat.bc.rite.C - Y*L*L/4 -cd(1)*Y*L;
+        % u/4+D/2du/dn=C on the right becomes: u/4+D/2du/dx=C 
+        % <==> (YL^2+BL+E)/4 + D/2(2YL+B) = C 
+        mat(2,1:2) =[L/4+cd(L)/2,1/4];
+        b(2) = dat.bc.rite.C - Y*L*L/4 -cd(L)*Y*L;
     case 2 % Dirichlet
         mat(2,1:2) =[L,1];
         b(2) = dat.bc.rite.C - Y*L*L;
@@ -268,12 +274,12 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function y=condu(x)
-y=5;
+y=.5;
 return
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function y=esrc(x)
-y=10;
+y=1;
 return
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
