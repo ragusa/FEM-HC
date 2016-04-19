@@ -49,6 +49,10 @@ npar.xf((npar.ne+1):(2*npar.ne+1)) = linspace(dat.width(1),dat.width(2),npar.ne+
 npar.xf((2*npar.ne+2):(3*npar.ne+2)) = linspace(dat.width(2),dat.width(3),npar.ne+1);
 
 plot(npar.xf,F,'.-'); hold all
+title('1D heat conduction problem')
+xlabel('Width')
+ylabel('Temperature')
+
 % verification is always good
 verif_hc_eq(dat)
 
@@ -268,120 +272,55 @@ function verif_hc_eq(dat)
 
 cd=dat.condu; src=dat.esrc; L=dat.width;
 
-% zone 1
-% general form of the solution:
-% T = B x + E
-% dT/dx= B
 switch dat.bc.left.type
     case 0 % Neumann
         % +Ddu/dn=C on the left becomes: -Ddu/dx=C <==> -D.B=C <==> B=-C/D
-        mat(1,1:2) =[1,0];
+        mat(1,1:6) =[1,0,0,0,0,0];
         b(1) = -dat.bc.left.C / cd(0);
     case 1 % Robin
         % u/4+D/2du/dn=C on the left becomes: u/4-D/2du/dx=C 
         % <==> -(D/2)*B+E/4=C 
-        mat(1,1:2) =[-cd(0)/2,1/4];
+        mat(1,1:6) =[-cd(0)/2,1/4];
         b(1) = dat.bc.left.C;
     case 2 % Dirichlet
-        mat(1,1:2) =[0,1];
+        mat(1,1:6) =[0,1,0,0,0,0];
         b(1) = dat.bc.left.C;
 end
 switch dat.bc.rite.type
     case 0 % Neumann
         % +Ddu/dn=C on the right becomes: Ddu/dx=C <==> D.B=C <==> B=C/D
-        mat(2,1:2) =[1,0];
-        b(2) = dat.bc.rite.C / cd(L(1));
+        mat(6,1:6) =[0,0,0,0,1,0];
+        b(6) = dat.bc.rite.C / cd(L(3));
     case 1 % Robin
         % u/4+D/2du/dn=C on the right becomes: u/4+D/2du/dx=C 
         % <==> (BL+E)/4 + (D/2)*B = C 
-        mat(2,1:2) =[L(1)/4+cd(L(1))/2,1/4];
-        b(2) = dat.bc.rite.C;
+        mat(6,1:6) =[0,0,0,0,L(3)/4+cd(L(3))/2,1/4];
+        b(6) = dat.bc.rite.C;
     case 2 % Dirichlet
-        mat(2,1:2) =[L(1),1];
-        b(2) = dat.bc.rite.C;
+        mat(6,1:6) =[0,0,0,0,L(3),1];
+        b(6) = dat.bc.rite.C;
 end
+
+Y=-src(L(1))/(2*cd(L(1)));
+
+mat(2,1:6) =[1,0,-1,0,0,0];
+mat(3,1:6) =[0,0,cd(L(1)),0,-cd(L(3)),0];
+mat(4,1:6) =[L(1),1,-L(1),-1,0,0];
+mat(5,1:6) =[0,0,L(2),1,-L(2),-1];
+b(2) =2*Y*L(1);
+b(3) =-2*Y*L(2);
+b(4) =Y*L(1)*L(1);
+b(5) =-Y*L(2)*L(2);
+
 % get coefficient for the analytical solution
 a=mat\b';
 x1=linspace(0,L(1));
-y1=a(1)*x1+a(2);
-plot(x1,y1,'r-'); hold on;
-
-% zone 2
-% general form of the solution:
-% T = Y x x + B x + E
-% dT/dx= 2Yx + B
-Y=-src(L(1))/(2*cd(L(1)));
-switch dat.bc.left.type
-    case 0 % Neumann
-        % +Ddu/dn=C on the left becomes: -Ddu/dx=C <==> -D.B=C <==> B=-C/D
-        mat(1,1:2) =[1,0];
-        b(1) = -dat.bc.left.C / cd(L(1));
-    case 1 % Robin
-        % u/4+D/2du/dn=C on the left becomes: u/4-D/2du/dx=C 
-        % <==> E/4-D/2(B)=C 
-        mat(1,1:2) =[-cd(L(1))/2,1/4];
-        b(1) = dat.bc.left.C;
-    case 2 % Dirichlet
-        mat(1,1:2) =[L(1),1];
-        b(1) = dat.bc.left.C;
-end
-switch dat.bc.rite.type
-    case 0 % Neumann
-        % +Ddu/dn=C on the right becomes: Ddu/dx=C <==> D.(2YL+B)=C <==> B=C/D-2YL
-        mat(2,1:2) =[1,0];
-        b(2) = dat.bc.rite.C / cd(L(2)) - 2*Y*L(2);
-    case 1 % Robin
-        % u/4+D/2du/dn=C on the right becomes: u/4+D/2du/dx=C 
-        % <==> (YL^2+BL+E)/4 + D/2(2YL+B) = C 
-        mat(2,1:2) =[L(2)/4+cd(L(2))/2,1/4];
-        b(2) = dat.bc.rite.C - Y*L(2)*L(2)/4 -cd(L(2))*Y*L(2);
-    case 2 % Dirichlet
-        mat(2,1:2) =[L(2),1];
-        b(2) = dat.bc.rite.C - Y*L(2)*L(2);
-end
-% get coefficient for the analytical solution
-a=mat\b';
 x2=linspace(L(1),L(2));
-y2=Y*(x2.^2)+a(1)*x2+a(2);
-plot(x2,y2,'r-'); hold on;
-
-% zone 3
-% general form of the solution:
-% T = B x + E
-% dT/dx= B
-switch dat.bc.left.type
-    case 0 % Neumann
-        % +Ddu/dn=C on the left becomes: -Ddu/dx=C <==> -D.B=C <==> B=-C/D
-        mat(1,1:2) =[1,0];
-        b(1) = -dat.bc.left.C / cd(L(2));
-    case 1 % Robin
-        % u/4+D/2du/dn=C on the left becomes: u/4-D/2du/dx=C 
-        % <==> -(D/2)*B+E/4=C 
-        mat(1,1:2) =[-cd(L(2))/2,1/4];
-        b(1) = dat.bc.left.C;
-    case 2 % Dirichlet
-        mat(1,1:2) =[L(2),1];
-        b(1) = dat.bc.left.C;
-end
-switch dat.bc.rite.type
-    case 0 % Neumann
-        % +Ddu/dn=C on the right becomes: Ddu/dx=C <==> D.B=C <==> B=C/D
-        mat(2,1:2) =[1,0];
-        b(2) = dat.bc.rite.C / cd(L(3));
-    case 1 % Robin
-        % u/4+D/2du/dn=C on the right becomes: u/4+D/2du/dx=C 
-        % <==> (BL+E)/4 + (D/2)*B = C 
-        mat(2,1:2) =[L(3)/4+cd(L(3))/2,1/4];
-        b(2) = dat.bc.rite.C;
-    case 2 % Dirichlet
-        mat(2,1:2) =[L(3),1];
-        b(2) = dat.bc.rite.C;
-end
-% get coefficient for the analytical solution
-a=mat\b';
 x3=linspace(L(2),L(3));
-y3=a(1)*x3+a(2);
-plot(x3,y3,'r-'); hold all;
+y1=a(1)*x1+a(2);
+y2=Y*(x2.^2)+a(3)*x2+a(4);
+y3=a(5)*x3+a(6);
+plot(x1,y1,x2,y3,x3,y3,'r-'); hold all;
 
 return
 end
