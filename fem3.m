@@ -9,7 +9,7 @@ dat.width=10;
 bc.left.type=2; %0=neumann, 1=robin, 2=dirichlet
 bc.left.C=7; % (that data is C in: +Ddu/dn=C // u/4+D/2du/dn=C // u=C)
 bc.rite.type=1;
-bc.rite.C=111;
+bc.rite.C=2;
 dat.bc=bc; clear bc;
 
 % load the numerical parameters, npar, structure pertaining to numerics
@@ -34,6 +34,10 @@ F = solve_fem3(dat,npar);
 % plot
 figure(1)
 plot(npar.x,F,'.-'); hold all
+title('1D heat conduction problem')
+xlabel('Width')
+ylabel('Temperature')
+
 % % verification is always good
 verif_hc_eq(dat)
 
