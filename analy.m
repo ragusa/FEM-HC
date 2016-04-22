@@ -13,7 +13,9 @@ bc.left.C=0; % (that data is C in: +Ddu/dn=C // u/4+D/2du/dn=C // u=C)
 bc.rite.type=2;
 bc.rite.C=2;
 dat.bc=bc; clear bc;
-
+% ROBIN FOR HEAT CONDUCTION IS: D du/dn = hconv (T-Tcoolant)
+% THE 1/4 COMES FROM NEUTRONICS. YOU NEED TO CHANGE THE VALUE OF THE COEF
+% IN THE ROBIN BC TO REFLECT HEAT CONDUCTION !!!!!
 verif_hc_eq;
 
 return
@@ -33,7 +35,7 @@ switch dat.bc.left.type
     case 1 % Robin
         % u/4+D/2du/dn=C on the left becomes: u/4-D/2du/dx=C 
         % <==> -(D/2)*B+E/4=C 
-        mat(1,1:6) =[-cd(L(1))/2,1/4,0,0,0,0];
+        mat(1,1:6) =[-cd(L(1))/2,1/4,0,0,0,0]; % THIS IS LIKELY WRONG. WHY L(1) ???
         b(1) = dat.bc.left.C;
     case 2 % Dirichlet
         mat(1,1:6) =[0,1,0,0,0,0];
@@ -54,6 +56,9 @@ switch dat.bc.rite.type
         b(6) = dat.bc.rite.C;
 end
 
+% THIS BELOW IS NOT UNDERSTANDABLE
+% THERE SHOULD BE ALMOST ENOUGH COMMENTS SO THAT ANYONE COULD FOLLOW
+% WITHOUT HAVING TO DERIVE EVERYTHING BY END
 Y1=-src(L(2))/cd(L(1));
 Y2=-src(L(2))/(2*cd(L(2)));
 
