@@ -3,23 +3,25 @@ function F=driver
 % clear the console screen
 clc; close all;clf
 % load the data structure with info pertaining to the physical problem
+global dat
 dat.condu=@condu;
 dat.esrc=@esrc;
 dat.hgap=15764;
 dat.width=[0.003175 0.034823 0.036];
-bc.left.type=2; %0=neumann, 1=robin, 2=dirichlet
-bc.left.C=400; % (that data is C in: +Ddu/dn=C // u/4+D/2du/dn=C // u=C)
+bc.left.type=0; %0=neumann, 1=robin, 2=dirichlet
+bc.left.C=0; % (that data is C in: +Ddu/dn=C // u/4+D/2du/dn=C // u=C)
 bc.rite.type=2;
 bc.rite.C=2;
 dat.bc=bc; clear bc;
 
-verif_hc_eq(dat)
+verif_hc_eq;
 
 return
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function verif_hc_eq(dat)
+function verif_hc_eq
+global dat
 
 cd=dat.condu; src=dat.esrc; hgap=dat.hgap; L=dat.width; 
 
@@ -83,8 +85,8 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function y=condu(x)
-w=[0.003175 0.034823 0.036];
-if x<=w(2)
+global dat;
+if x<=dat.width(2)
     y=18;
 else
     y=16;
@@ -93,8 +95,8 @@ return
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function y=esrc(x)
-w=[0.003175 0.034823 0.036];
-if (x>w(1) | x<=w(2)) 
+global dat
+if (x>dat.width(1) || x<=dat.width(2)) 
     y=5000000;
 else
     y=0;
