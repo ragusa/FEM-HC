@@ -129,7 +129,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function y=esrc(x)
 global dat
-if (x>dat.width(1) && x<=dat.width(2)) 
+if (x>dat.width(1) & x<=dat.width(2)) 
     y=5000000;
 else
     y=0;
