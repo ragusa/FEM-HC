@@ -8,7 +8,7 @@ dat.esrc=@esrc;
 dat.width=10;
 bc.left.type=2; %0=neumann, 1=robin, 2=dirichlet
 bc.left.C=7; % (that data is C in: +Ddu/dn=C // u/4+D/2du/dn=C // u=C)
-bc.rite.type=1;
+bc.rite.type=2;
 bc.rite.C=2;
 dat.bc=bc; clear bc;
 
