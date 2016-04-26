@@ -10,7 +10,7 @@ dat.hgap=15764;
 dat.hcv=20000;
 dat.width=[0.003175 0.034823 0.036];
 bc.left.type=1; %0=neumann, 1=robin, 2=dirichlet
-bc.left.C=400; % (that data is C in: kdu/dn=C // u-k/hconv*du/dn =C // u=C)
+bc.left.C=400; % (that data is C in: kdu/dn=C // u-k/hcv*du/dn =C // u=C)
 bc.rite.type=1;
 bc.rite.C=80;
 dat.bc=bc; clear bc;
