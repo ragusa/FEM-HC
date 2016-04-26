@@ -7,12 +7,11 @@ global dat
 dat.condu=@condu;
 dat.esrc=@esrc;
 dat.hgap=15764;
-dat.hconv=20000;
-dat.tcool=50;
+dat.hcv=20000;
 dat.width=[0.003175 0.034823 0.036];
-bc.left.type=2; %0=neumann, 1=robin, 2=dirichlet
-bc.left.C=400; % (that data is C in: kdu/dn=C // kdu/dn = hconv(C-Tcool) // u=C)
-bc.rite.type=2;
+bc.left.type=1; %0=neumann, 1=robin, 2=dirichlet
+bc.left.C=400; % (that data is C in: kdu/dn=C // u-k/hconv*du/dn =C // u=C)
+bc.rite.type=1;
 bc.rite.C=80;
 dat.bc=bc; clear bc;
 
@@ -25,8 +24,7 @@ end
 function verif_hc_eq
 global dat
 
-cd=dat.condu; src=dat.esrc; hgap=dat.hgap; hconv=dat.hconv;
-tcool=dat.tcool; L=dat.width; 
+cd=dat.condu; src=dat.esrc; hgap=dat.hgap; hcv=dat.hcv; L=dat.width; 
 
 % general form of the solution:
 % Zone 1 : T1 = B1*x + E1
@@ -47,10 +45,10 @@ switch dat.bc.left.type
         mat(1,1:6) =[1,0,0,0,0,0];
         b(1) = -dat.bc.left.C / cd(L(1));
     case 1 % Robin
-        % k1*du1/dn = hconv(C-Tcool) on the left becomes: -k1*du1/dx=hconv(C-Tcool) 
-        % <==> -k1*B1=hconv(C-Tcool) 
-        mat(1,1:6) =[-cd(L(1)),0,0,0,0,0]; %cd(L(1))=cd(L(0)) in the function definition
-        b(1) = hconv*(dat.bc.left.C-tcool);
+        % u1-k1/hcv*du1/dn =C on the left becomes: u1+k1/hcv*du1/dx =C
+        % <==> k1/hcv*B1+E1=C
+        mat(1,1:6) =[cd(L(1))/hcv,1,0,0,0,0]; %cd(L(1))=cd(L(0)) in the function definition
+        b(1) = dat.bc.left.C;
     case 2 % Dirichlet
         % u1=C <==> E1=C
         mat(1,1:6) =[0,1,0,0,0,0];
@@ -63,10 +61,10 @@ switch dat.bc.rite.type
         mat(6,1:6) =[0,0,0,0,1,0];
         b(6) = dat.bc.rite.C / cd(L(3));
     case 1 % Robin
-        % k3*du3/dn = hconv(C-Tcool) on the right becomes: k3*du3/dx=hconv(C-Tcool) 
-        % <==> k3*B3=hconv(C-Tcool) 
-        mat(6,1:6) =[0,0,0,0,cd(L(3)),0];
-        b(6) = hconv*(dat.bc.rite.C-tcool);
+        % u3-k3/hcv*du3/dn =C on the right becomes: u3-k3/hcv*du3/dx =C
+        % <==> (L3-k3/hcv)B3+E3=C
+        mat(6,1:6) =[0,0,0,0,L(3)-cd(L(3))/hcv,1];
+        b(6) = dat.bc.rite.C;
     case 2 % Dirichlet
         % u3=C <==> B3*L+E3=C
         mat(6,1:6) =[0,0,0,0,L(3),1];
