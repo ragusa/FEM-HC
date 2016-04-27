@@ -1,11 +1,14 @@
 function F=driver
-
 % clear the console screen
-clc; close all;clf
+clc; clear all; close all;clf
 % load the data structure with info pertaining to the physical problem
-global dat
-dat.condu=@condu;
-dat.esrc=@esrc;
+dat.condu{1}=@condu_Zr;
+dat.condu{2}=@condu_fuel;
+dat.condu{3}=@condu_clad;
+dat.esrc{1}=@zero_function;
+dat.esrc{2}=@esrc;
+dat.esrc{3}=@zero_function;
+
 dat.hgap=15764;
 dat.hcv=20000;
 dat.width=[0.003175 0.034823 0.036];
@@ -15,31 +18,48 @@ bc.rite.type=1;
 bc.rite.C=80;
 dat.bc=bc; clear bc;
 
+gap_zone_ID=2;
+nel_zone = [ 10 10 10];
+
 % load the numerical parameters, npar, structure pertaining to numerics
 % number of elements
-npar.ne = 10;
-npar.nelgap = 2*npar.ne;
-npar.nel = 3*npar.ne;
+if length(dat.width)~=length(nel_zone)
+    error('not the same number of zones in dat.widht and nel_zone');
+end
+npar.nel = sum(nel_zone);
+npar.nelgap = sum(nel_zone(1:gap_zone_ID));
+%
+
 % domain
-npar.x(1:(npar.ne+1)) = linspace(0,dat.width(1),npar.ne+1);
-npar.x((npar.ne+1):(2*npar.ne+1)) = linspace(dat.width(1),dat.width(2),npar.ne+1);
-npar.x((2*npar.ne+1):(3*npar.ne+1)) = linspace(dat.width(2),dat.width(3),npar.ne+1);
+tmp_width = [ 0 dat.width];
+x=[];
+iel2zon=[];
+for z=1:length(nel_zone)
+    x_zone = linspace(tmp_width(z),tmp_width(z+1),nel_zone(z)+1);
+    if isempty(x)
+        x = x_zone;
+        iel2zon=z*ones(nel_zone(z),1);
+    else
+        x = [x x_zone(2:end)];
+        iel2zon =[ iel2zon; z*ones(nel_zone(z),1)];
+    end
+    
+end
+npar.x=x;
+npar.iel2zon=iel2zon;
 % polynomial degree
 npar.porder=1;
 % nbr of dofs per variable
 npar.ndofs = npar.porder*npar.nel+2;
 % connectivity
+
 gn=zeros(npar.nel,npar.porder+1);
 gn(1,:)=linspace(1,npar.porder+1,npar.porder+1);
-for iel=2:npar.nelgap
+for iel=2:npar.nel
     gn(iel,:)=[gn(iel-1,end) , gn(iel-1,2:end)+npar.porder ];
 end
-for iel=(npar.nelgap+2)
-    gn(iel-1,:)=[gn(iel-2,end)+1 , gn(iel-2,2:end)+1+npar.porder ];
-end
-for iel=(npar.nelgap+2):npar.nel
-    gn(iel,:)=[gn(iel-1,end) , gn(iel-1,2:end)+npar.porder ];
-end
+% adding the gap unknowns
+gn(npar.nelgap+1:end,1:2)=gn(npar.nelgap+1:end,1:2)+1;
 npar.gn=gn; clear gn;
 
 % solve system
@@ -47,9 +67,7 @@ F = solve_fem3(dat,npar);
 % plot
 figure(1)
 
-npar.xf(1:(npar.ne+1)) = linspace(0,dat.width(1),npar.ne+1);
-npar.xf((npar.ne+1):(2*npar.ne+1)) = linspace(dat.width(1),dat.width(2),npar.ne+1);
-npar.xf((2*npar.ne+2):(3*npar.ne+2)) = linspace(dat.width(2),dat.width(3),npar.ne+1);
+npar.xf=[npar.x(1:npar.nelgap+1) npar.x(npar.nelgap+1:end)] ;
 
 plot(npar.xf,F,'.-'); hold all
 title('1D heat conduction problem')
@@ -57,7 +75,7 @@ xlabel('Width')
 ylabel('Temperature')
 
 % verification is always good
-verif_hc_eq;
+verif_hc_eq(dat);
 
 return
 end
@@ -125,8 +143,9 @@ for iel=1:npar.nel
     Jac=(x1-x0)/2;
     % get x values in the interval
     x=(x1+x0)/2+xq*(x1-x0)/2;
-    d=dat.condu(x);
-    q=dat.esrc(x);
+    my_zone=npar.iel2zon(iel);
+    d=dat.condu{my_zone}(x);
+    q=dat.esrc{my_zone}(x);
     % compute local matrices + load vector
     for i=1:porder+1
         for j=1:porder+1
@@ -137,14 +156,14 @@ for iel=1:npar.nel
     end
     % assemble
     A(gn(iel,:),gn(iel,:)) = A(gn(iel,:),gn(iel,:)) + ...
-       m*Jac + k/Jac;
+        m*Jac + k/Jac;
     rhs(gn(iel,:)) = rhs(gn(iel,:)) + f*Jac;
 end
 
 A(g1,g1)=A(g1,g1)+dat.hgap;
 A(g1,g2)=A(g1,g2)-dat.hgap;
 A(g2,g1)=A(g2,g1)-dat.hgap;
-A(g1,g2)=A(g1,g2)+dat.hgap;
+A(g2,g2)=A(g2,g2)+dat.hgap;
 
 % apply natural BC
 Dirichlet_nodes=[];
@@ -257,10 +276,9 @@ return
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function verif_hc_eq
-global dat
+function verif_hc_eq(dat)
 
-cd=dat.condu; src=dat.esrc; hgap=dat.hgap; hcv=dat.hcv; L=dat.width; 
+cd=dat.condu; src=dat.esrc; hgap=dat.hgap; hcv=dat.hcv; L=dat.width;
 
 % general form of the solution:
 % Zone 1 : T1 = B1*x + E1
@@ -271,19 +289,19 @@ cd=dat.condu; src=dat.esrc; hgap=dat.hgap; hcv=dat.hcv; L=dat.width;
 % dT3/dx= B3
 
 % definition of 2 coefficients
-Y1=-src(L(2))/cd(L(1));
-Y2=-src(L(2))/(2*cd(L(2)));
+Y1=-src{2}(L(2))/cd{1}(L(1));
+Y2=-src{2}(L(2))/(2*cd{2}(L(2)));
 
 switch dat.bc.left.type
     case 0 % Neumann
-        % k1*du1/dn=C on the left becomes: -k1*du1/dx=C 
+        % k1*du1/dn=C on the left becomes: -k1*du1/dx=C
         % <==> -k1*B1=C <==> B1=-C/k1
         mat(1,1:6) =[1,0,0,0,0,0];
-        b(1) = -dat.bc.left.C / cd(L(1));
+        b(1) = -dat.bc.left.C / cd{1}(L(1));
     case 1 % Robin
         % u1-k1/hcv*du1/dn =C on the left becomes: u1+k1/hcv*du1/dx =C
         % <==> k1/hcv*B1+E1=C
-        mat(1,1:6) =[cd(L(1))/hcv,1,0,0,0,0]; %cd(L(1))=cd(L(0)) in the function definition
+        mat(1,1:6) =[cd{1}(L(1))/hcv,1,0,0,0,0]; %cd(L(1))=cd(L(0)) in the function definition
         b(1) = dat.bc.left.C;
     case 2 % Dirichlet
         % u1=C <==> E1=C
@@ -292,14 +310,14 @@ switch dat.bc.left.type
 end
 switch dat.bc.rite.type
     case 0 % Neumann
-        % k3*du3/dn=C on the right becomes: k3*du3/dx=C 
+        % k3*du3/dn=C on the right becomes: k3*du3/dx=C
         % <==> k3*B3=C <==> B3=C/k3
         mat(6,1:6) =[0,0,0,0,1,0];
-        b(6) = dat.bc.rite.C / cd(L(3));
+        b(6) = dat.bc.rite.C / cd{3}(L(3));
     case 1 % Robin
         % u3-k3/hcv*du3/dn =C on the right becomes: u3-k3/hcv*du3/dx =C
         % <==> (L3-k3/hcv)B3+E3=C
-        mat(6,1:6) =[0,0,0,0,L(3)-cd(L(3))/hcv,1];
+        mat(6,1:6) =[0,0,0,0,L(3)-cd{3}(L(3))/hcv,1];
         b(6) = dat.bc.rite.C;
     case 2 % Dirichlet
         % u3=C <==> B3*L+E3=C
@@ -315,7 +333,7 @@ mat(2,1:6) =[L(1),1,-L(1),-1,0,0];
 b(2) =Y2*L(1)*L(1);
 % phi1(L1)=phi2(L1) <==> k1*B1=k2*(Y1*L1+B2)
 % <==> (k1/k2)*B1-B2=Y1*L1
-mat(3,1:6) =[cd(L(1))/cd(L(2)),0,-1,0,0,0];
+mat(3,1:6) =[cd{1}(L(1))/cd{2}(L(2)),0,-1,0,0,0];
 b(3) =Y1*L(1);
 
 % discontinuity of T between zone 2 and zone 3 (interface L2)
@@ -325,12 +343,12 @@ b(3) =Y1*L(1);
 % -k2*dT2/dx=hgap(T2(L2)-Tg)
 % <==> -k2(-q/k2*L2+B2)=hgap(T2(L2)-T3(L2))/2
 % <==> (2k2+L2*hgap)B2+hgap*E2-L2*hgap*B3-hgap*E3=-hgap*Y2*(L2^2)+2*q*L2
-mat(4,1:6) =[0,0,2*cd(L(2))+L(2)*hgap,hgap,-L(2)*hgap,-hgap];
-b(4) =-hgap*Y2*L(2)*L(2)+2*src(L(2))*L(2);
+mat(4,1:6) =[0,0,2*cd{2}(L(2))+L(2)*hgap,hgap,-L(2)*hgap,-hgap];
+b(4) =-hgap*Y2*L(2)*L(2)+2*src{2}(L(2))*L(2);
 % -k3*dT3/dx=hgap(Tg-T3(L2))
 % <==> -k3*B3=hgap(T2(L2)-T3(L2))/2
 % <==> L2*hgap*B2+hgap*E2+(2k3-L2*hgap)*B3-hgap*E3=-hgap*Y2*(L2^2)
-mat(5,1:6) =[0,0,L(2)*hgap,hgap,2*cd(L(3))-L(2)*hgap,-hgap];
+mat(5,1:6) =[0,0,L(2)*hgap,hgap,2*cd{3}(L(3))-L(2)*hgap,-hgap];
 b(5) =-hgap*Y2*L(2)*L(2);
 
 % get coefficient for the analytical solution
@@ -350,24 +368,4 @@ ylabel('Temperature')
 return
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function y=condu(x)
-global dat
-if x<=dat.width(2)
-    y=18;
-else
-    y=16;
-end
-return
-end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function y=esrc(x)
-global dat
-if (x>dat.width(1) & x<=dat.width(2)) 
-    y=5000000;
-else
-    y=0;
-end
-return
-end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
