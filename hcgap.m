@@ -69,13 +69,23 @@ figure(1)
 
 npar.xf=[npar.x(1:npar.nelgap+1) npar.x(npar.nelgap+1:end)] ;
 
-plot(npar.xf,F,'.-'); hold all
-title('1D heat conduction problem')
+% verification is always good
+a=verif_hc_eq(dat);
+
+% get coefficient for the analytical solution
+k=dat.k; src=dat.esrc; L=dat.width;
+x1=linspace(0,L(1));
+x2=linspace(L(1),L(2));
+x3=linspace(L(2),L(3));
+y1=a(1)*x1+a(2);
+y2=-src{2}(x2)/(2*k{2}(x2))*(x2.^2)+a(3)*x2+a(4);
+y3=a(5)*x3+a(6);
+
+plot(npar.xf,F,'.-',x1,y1,'r-',x2,y2,'r-',x3,y3,'r-'); hold all;
+title('1D heat conduction problem, 3 zones, with T gap, Cartesian coordinates')
 xlabel('Width')
 ylabel('Temperature')
-
-% verification is always good
-verif_hc_eq(dat);
+legend('FEM','Analytical','Location','northoutside','Orientation','horizontal')
 
 return
 end
@@ -276,7 +286,7 @@ return
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function verif_hc_eq(dat)
+function a=verif_hc_eq(dat)
 
 k=dat.k; src=dat.esrc; hgap=dat.hgap; hcv=dat.hcv; L=dat.width;
 
@@ -347,19 +357,7 @@ b(4) =hgap*(src{2}(L(2))/(2*k{2}(L(2))))*L(2)*L(2)+2*src{2}(L(2))*L(2);
 mat(5,1:6) =[0,0,L(2)*hgap,hgap,2*k{3}(L(2))-L(2)*hgap,-hgap];
 b(5) =hgap*(src{2}(L(2))/(2*k{2}(L(2))))*L(2)*L(2);
 
-% get coefficient for the analytical solution
 a=mat\b';
-x1=linspace(0,L(1));
-x2=linspace(L(1),L(2));
-x3=linspace(L(2),L(3));
-y1=a(1)*x1+a(2);
-y2=-src{2}(x2)/(2*k{2}(x2))*(x2.^2)+a(3)*x2+a(4);
-y3=a(5)*x3+a(6);
-
-plot(x1,y1,x2,y2,x3,y3); hold all;
-title('1D heat conduction problem')
-xlabel('Width')
-ylabel('Temperature')
 
 return
 end

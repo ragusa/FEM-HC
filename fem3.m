@@ -14,7 +14,7 @@ dat.bc=bc; clear bc;
 
 % load the numerical parameters, npar, structure pertaining to numerics
 % number of elements
-npar.nel = 10;
+npar.nel = 20;
 % domain
 npar.x = linspace(0,dat.width,npar.nel+1);
 % polynomial degree
@@ -33,13 +33,19 @@ npar.gn=gn; clear gn;
 F = solve_fem3(dat,npar);
 % plot
 figure(1)
-plot(npar.x,F,'.-'); hold all
-title('1D heat conduction problem')
-xlabel('Width')
-ylabel('Temperature')
 
 % % verification is always good
-verif_hc_eq(dat)
+a=verif_hc_eq(dat);
+
+cd=dat.condu; src=dat.esrc; L=dat.width;
+
+x=linspace(0,L);
+y=-src(1)/(2*cd(1))*(x.^2)+a(1)*x+a(2);
+plot(npar.x,F,'.-',x,y,'r-');hold all
+title('1D heat conduction problem, 1 zone, Cartesian coordinates')
+xlabel('Width')
+ylabel('Temperature')
+legend('FEM','Analytical','Location','northoutside','Orientation','horizontal')
 
 return
 end
@@ -231,7 +237,7 @@ return
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function verif_hc_eq(dat)
+function a=verif_hc_eq(dat)
 
 cd=dat.condu; src=dat.esrc; L=dat.width;
 
@@ -269,9 +275,6 @@ switch dat.bc.rite.type
 end
 % get coefficient for the analytical solution
 a=mat\b';
-x=linspace(0,L);
-y=Y*(x.^2)+a(1)*x+a(2);
-plot(x,y,'r-');hold all
 
 return
 end
