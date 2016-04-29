@@ -12,7 +12,8 @@ dat.esrc{3}=@zero_function;
 dat.hgap=15764;
 dat.hcv=20000;
 dat.width=[0.003175 0.034823 0.036];
-bc.left.type=0; %0=neumann, 1=robin, 2=dirichlet
+%dat.width=[0.006 0.034823 0.039];
+bc.left.type=2; %0=neumann, 1=robin, 2=dirichlet
 bc.left.C=0; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
 bc.rite.type=1;
 bc.rite.C=400;
@@ -282,8 +283,8 @@ k=dat.k; src=dat.esrc; hgap=dat.hgap; hcv=dat.hcv; L=dat.width;
 % general form of the solution:
 % Zone 1 : T1 = B1*x + E1
 % dT1/dx= B1
-% Zone 2 : T2 = -q/(2*k2)*(x.^2) + B2*x + E2 = Y2*(x.^2) + B2*x + E2
-% dT2/dx= -q/k2*x + B2 = Y1*x + B2
+% Zone 2 : T2 = -q/(2*k2)*(x.^2) + B2*x + E2
+% dT2/dx= -q/k2*x + B2
 % Zone 3 : T3 = B3*x + E3
 % dT3/dx= B3
 
@@ -327,7 +328,7 @@ end
 mat(2,1:6) =[L(1),1,-L(1),-1,0,0];
 b(2) =-src{2}(L(1))/(2*k{2}(L(1)))*L(1)*L(1);
 % phi1(L1)=phi2(L1) <==> k1*B1=k2*((-q/k2)*L1+B2)
-% <==> (k1/k2)*B1-B2=(-q/k1)*L1
+% <==> (k1/k2)*B1-B2=(-q/k2)*L1
 mat(3,1:6) =[k{1}(L(1))/k{2}(L(1)),0,-1,0,0,0];
 b(3) =-src{2}(L(1))/k{2}(L(1))*L(1);
 
