@@ -12,10 +12,8 @@ dat.esrc{3}=@(r) 0;
 dat.hgap=15764;
 dat.hcv=20000;
 dat.width=[0.006 0.034823 0.039];
-% % bc.left.type=2; %0=neumann, 1=robin, 2=dirichlet
-% % bc.left.C=400; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
 bc.rite.type=1;
-bc.rite.C=80;
+bc.rite.C=400;
 dat.bc=bc; clear bc;
 
 verif_hc_eq(dat);
@@ -29,29 +27,13 @@ function verif_hc_eq(dat)
 k=dat.k; src=dat.esrc; hgap=dat.hgap; hcv=dat.hcv; L=dat.width;
 
 % general form of the solution:
-% Zone 1 : T1 = B1*ln(r) + E1
-% dT1/dr= B1/r
-% Zone 2 : T2 = -q/(4*k2)*(r.^2) + E2
-% dT2/dr= -q/2k2*r
+% Zone 1 : T1 = E1
+% dT1/dr= 0
+% Zone 2 : T2 = -q/(4*k2)*(r^2) + B2*ln(r) + E2
+% dT2/dr= -q/2k2*r + B2/r
 % Zone 3 : T3 = B3*ln(r) + E3
 % dT3/dr= B3/r
 
-% % switch dat.bc.left.type
-% %     case 0 % Neumann
-% %         % k1*du1/dn=C on the left becomes: -k1*du1/dx=C
-% %         % <==> -k1*B1=C <==> B1=-C/k1
-% %         mat(1,1:6) =[1,0,0,0,0,0];
-% %         b(1) = -dat.bc.left.C / k{1}(0);
-% %     case 1 % Robin
-% %         % u1+k1/hcv*du1/dn =C on the left becomes: u1-k1/hcv*du1/dx =C
-% %         % <==> -k1/hcv*B1+E1=C
-% %         mat(1,1:6) =[-k{1}(0)/hcv,1,0,0,0,0];
-% %         b(1) = dat.bc.left.C;
-% %     case 2 % Dirichlet
-% %         % u1=C <==> E1=C
-% %         mat(1,1:6) =[0,1,0,0,0,0];
-% %         b(1) = dat.bc.left.C;
-% % end
 switch dat.bc.rite.type
     case 0 % Neumann
         % k3*du3/dn=C on the right becomes: k3*du3/dx=C
@@ -71,28 +53,28 @@ end
 
 % fixed conditions
 % continuity of T and flux between zone 1 and zone 2 (interface L1)
-% T1(L1)=T2(L1) <==> B1*log(L1)+E1=(-q/4k2)*(L1^2)+E2
-% <==> B1*ln(L1)+E1-E2=(-q/4k2)*(L1^2)
-mat(1,1:5) =[log(L(1)),1,-1,0,0];
-b(1) =-src{2}(L(1))/(4*k{2}(L(1)))*L(1)*L(1);
-% phi1(L1)=phi2(L1) <==> k1*B1/L1=k2*(-q/2k2)*L1
-% <==> (k1/k2)*B1=(-q/2k2)*L1*L1
-mat(2,1:5) =[k{1}(L(1))/k{2}(L(1)),0,0,0,0];
-b(2) =-src{2}(L(1))/(2*k{2}(L(1)))*L(1)*L(1);
+% T1(L1)=T2(L1) <==> B1=(-q/4k2)*(L1^2)+B2*ln(L1)+E2
+% <==> -E1+B2*ln(L1)+E2=(q/4k2)*(L1^2)
+mat(1,1:5) =[-1,log(L(1)),1,0,0];
+b(1) =src{2}(L(1))/(4*k{2}(L(1)))*L(1)*L(1);
+% phi1(L1)=phi2(L1) <==> 0=k2*((-q/2k2)*L1+B2/L1)
+% <==> B2=(q/2k2)*L1*L1
+mat(2,1:5) =[0,1,0,0,0];
+b(2) =src{2}(L(1))/(2*k{2}(L(1)))*L(1)*L(1);
 
 % discontinuity of T between zone 2 and zone 3 (interface L2)
-% T2(L2)=(-q/4k2)*(L2^2)+E2
+% T2(L2)=(-q/4k2)*(L2^2)+B2*ln(L2)+E2
 % T3(L2)=B3*ln(L2)+E3
 % Tg=(T2(L2)+T3(L2))/2
 % -k2*dT2/dr=hgap(T2(L2)-Tg)
-% <==> -k2(-q/2k2*L2)=hgap(T2(L2)-T3(L2))/2
-% <==> E2-ln(L2)*B3-E3=q/4k2*(L2^2)+q*L2/hgap
-mat(3,1:5) =[0,0,1,-log(L(2)),-1];
+% <==> -k2(-q/2k2*L2+B2/L2)=hgap(T2(L2)-T3(L2))/2
+% <==> (2k2/(hgap*L2)+ln(L2))*B2+E2-ln(L2)*B3-E3=q/4k2*(L2^2)+q*L2/hgap
+mat(3,1:5) =[0,2*k{2}(L(2))/(hgap*L(2))+log(L(2)),1,-log(L(2)),-1];
 b(3) =(src{2}(L(2))/(4*k{2}(L(2))))*L(2)*L(2)+src{2}(L(2))*L(2)/hgap;
 % -k3*dT3/dr=hgap(Tg-T3(L2))
 % <==> -k3*B3/L2=hgap(T2(L2)-T3(L2))/2
-% <==> E2+(2k3/(L2*hgap)-ln(L2))*B3-E3=q/4k2*(L2^2)
-mat(4,1:5) =[0,0,1,2*k{3}(L(2))/(L(2)*hgap)-log(L(2)),-1];
+% <==> ln(L2)*B2+E2+(2k3/(L2*hgap)-ln(L2))*B3-E3=q/4k2*(L2^2)
+mat(4,1:5) =[0,log(L(2)),1,2*k{3}(L(2))/(L(2)*hgap)-log(L(2)),-1];
 b(4) =(src{2}(L(2))/(4*k{2}(L(2))))*L(2)*L(2);
 
 % get coefficient for the analytical solution
@@ -100,8 +82,8 @@ a=mat\b';
 r1=linspace(0,L(1));
 r2=linspace(L(1),L(2));
 r3=linspace(L(2),L(3));
-y1=a(1)*log(r1)+a(2);
-y2=-src{2}(r2)/(4*k{2}(r2))*(r2.^2)+a(3);
+y1=a(1)+0*r1;
+y2=-src{2}(r2)/(4*k{2}(r2))*(r2.^2)+a(2)*log(r2)+a(3);
 y3=a(4)*log(r3)+a(5);
 
 plot(r1,y1,r2,y2,r3,y3); hold all;
