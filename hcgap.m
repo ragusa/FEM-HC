@@ -13,7 +13,7 @@ dat.hgap=15764;
 dat.hcv=20000;
 dat.width=[0.003175 0.034823 0.036];
 %dat.width=[0.006 0.034823 0.039];
-bc.left.type=2; %0=neumann, 1=robin, 2=dirichlet
+bc.left.type=0; %0=neumann, 1=robin, 2=dirichlet
 bc.left.C=0; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
 bc.rite.type=1;
 bc.rite.C=400;
@@ -159,14 +159,15 @@ for iel=1:npar.nel
     % compute local matrices + load vector
     for i=1:porder+1
         for j=1:porder+1
-            m(i,j)= dot(0.*wq.*b(:,i)    , b(:,j));
+            % m(i,j)= dot(0.*wq.*b(:,i)    , b(:,j));
             k(i,j)= dot(d.*wq.*dbdx(:,i) , dbdx(:,j));
         end
         f(i)= dot(q.*wq, b(:,i));
     end
     % assemble
-    A(gn(iel,:),gn(iel,:)) = A(gn(iel,:),gn(iel,:)) + ...
-        m*Jac + k/Jac;
+    % A(gn(iel,:),gn(iel,:)) = A(gn(iel,:),gn(iel,:)) + ...
+    %    m*Jac + k/Jac;
+    A(gn(iel,:),gn(iel,:)) = A(gn(iel,:),gn(iel,:)) + k/Jac;
     rhs(gn(iel,:)) = rhs(gn(iel,:)) + f*Jac;
 end
 
