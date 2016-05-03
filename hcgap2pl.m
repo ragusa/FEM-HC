@@ -12,7 +12,6 @@ dat.esrc{3}=@zero_function;
 dat.hgap=15764;
 dat.hcv=20000;
 dat.width=[0.003175 0.034823 0.036];
-% dat.width=[0.5 4 5];
 % bc.left.type=2; %0=neumann, 1=robin, 2=dirichlet
 % bc.left.C=0; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
 bc.rite.type=1;
@@ -20,7 +19,7 @@ bc.rite.C=400;
 dat.bc=bc; clear bc;
 
 gap_zone_ID=2;
-nel_zone = [ 1 10 2];
+nel_zone = [ 10 100 5];
 
 % load the numerical parameters, npar, structure pertaining to numerics
 % number of elements
