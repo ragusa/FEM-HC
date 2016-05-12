@@ -116,7 +116,7 @@ gn    = npar.gn;
 nel   = npar.nel;
 g1 = npar.nelgap+1;
 g2 = npar.nelgap+2;
-L = dat.width
+L = dat.width;
 % ideally, we would analyze the connectivity to determine nnz
 nnz=(porder+3)*nel; %this is an upperbound, not exact
 % n: linear system size
@@ -162,7 +162,6 @@ for iel=1:npar.nel
             % m(i,j)= dot(0.*wq.*b(:,i)    , b(:,j));
             k(i,j)= dot((Mival.*d.*wq.*dbdx(:,i)+Jac.*xq.*d.*wq.*dbdx(:,i)), dbdx(:,j));
         end
-        
         f(i)= dot((Mival.*q.*wq+Jac.*xq.*q.*wq), b(:,i));
     end
     % assemble
