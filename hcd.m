@@ -183,8 +183,8 @@ for ie=1:(npar.nel-1)
     kap=2*(k1/d1+k2/d2);
     % assemble
     A(gn(ie,:),gn(ie,:)) = A(gn(ie,:),gn(ie,:)) + mii + transpose(mii);
-    A(gn(ie,:),gn(ie+1,:)) = A(gn(ie,:),gn(ie+1,:)) + mie + transpose(mie);
-    A(gn(ie+1,:),gn(ie,:)) = A(gn(ie+1,:),gn(ie,:)) + mei + transpose(mei);
+    A(gn(ie,:),gn(ie+1,:)) = A(gn(ie,:),gn(ie+1,:)) + mie + transpose(mei);
+    A(gn(ie+1,:),gn(ie,:)) = A(gn(ie+1,:),gn(ie,:)) + mei + transpose(mie);
     A(gn(ie+1,:),gn(ie+1,:)) = A(gn(ie+1,:),gn(ie+1,:)) + mee + transpose(mee);
     % assemble
     A(2*ie,2*ie) = A(2*ie,2*ie)+kap;
