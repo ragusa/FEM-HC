@@ -47,13 +47,13 @@ npar.iel2zon=iel2zon;
 % polynomial degree
 npar.porder=1;
 % nbr of dofs per variable
-npar.ndofs = npar.porder*npar.nel*2;
+npar.ndofs = (npar.porder+1)*npar.nel;
 % connectivity
 
 gn=zeros(npar.nel,npar.porder+1);
 gn(1,:)=linspace(1,npar.porder+1,npar.porder+1);
 for iel=2:npar.nel
-    gn(iel,:)=[gn(iel-1,end)+npar.porder , gn(iel-1,2:end)+npar.porder+1 ];
+    gn(iel,:)=gn(iel-1,:) + npar.porder+1 ;
 end
 npar.gn=gn; clear gn;
 
@@ -115,7 +115,7 @@ nel   = npar.nel;
 % ideally, we would analyze the connectivity to determine nnz
 nnz=(porder+3)*nel; %this is an upperbound, not exact
 % n: linear system size
-n=nel*porder*2;
+n=nel*(porder+1);
 % allocate memory
 A=spalloc(n,n,nnz);
 rhs=zeros(n,1);
@@ -133,6 +133,8 @@ k=m;
 f=zeros(porder+1,1);
 % store shapeset
 [b,dbdx] =feshpln(xq,porder);
+% store shape set at edges
+[bedg,dbedgdx] =feshpln([-1 1],porder);
 
 % definition of the weak form:
 % int_domain (grad u D grad b) - int_bd_domain (b D grad u n) ...
@@ -162,7 +164,14 @@ for iel=1:npar.nel
     rhs(gn(iel,:)) = rhs(gn(iel,:)) + f*Jac;
 end
 
+% loop on interiror edges
 for ie=1:(npar.nel-1)
+    % left (interior)/right (exterior) elements
+	ieli = ie;
+	iele = ie+1;
+    % values for 2 cells 1= left of edge, 2= right of edge
+    ce1=npar.iel2zon(ieli);
+    ce2=npar.iel2zon(iele);
     % element extremities
     x0=npar.x(ie);
     x1=npar.x(ie+1);
@@ -170,9 +179,6 @@ for ie=1:(npar.nel-1)
     % element lengths
     d1=x1-x0;
     d2=x2-x1;
-    % values for 2 cells
-    ce1=npar.iel2zon(ie);
-    ce2=npar.iel2zon(ie+1);
     k1=dat.k{ce1}(x1);
     k2=dat.k{ce2}(x1);
     % compute local matrices + load vector
@@ -182,15 +188,15 @@ for ie=1:(npar.nel-1)
     mii=k1/(2*d1)*[0 0;1 -1];
     kap=2*(k1/d1+k2/d2);
     % assemble
-    A(gn(ie,:),gn(ie,:)) = A(gn(ie,:),gn(ie,:)) + mii + transpose(mii);
-    A(gn(ie,:),gn(ie+1,:)) = A(gn(ie,:),gn(ie+1,:)) + mie + transpose(mei);
-    A(gn(ie+1,:),gn(ie,:)) = A(gn(ie+1,:),gn(ie,:)) + mei + transpose(mie);
-    A(gn(ie+1,:),gn(ie+1,:)) = A(gn(ie+1,:),gn(ie+1,:)) + mee + transpose(mee);
+    A(gn(ieli,:),gn(ieli,:)) = A(gn(ieli,:),gn(ieli,:)) + mii + transpose(mii);
+    A(gn(ieli,:),gn(iele,:)) = A(gn(ieli,:),gn(iele,:)) + mie + transpose(mei);
+    A(gn(iele,:),gn(ieli,:)) = A(gn(iele,:),gn(ieli,:)) + mei + transpose(mie);
+    A(gn(iele,:),gn(iele,:)) = A(gn(iele,:),gn(iele,:)) + mee + transpose(mee);
     % assemble
-    A(2*ie,2*ie) = A(2*ie,2*ie)+kap;
-    A(2*ie,2*ie+1) = A(2*ie,2*ie+1)-kap;
-    A(2*ie+1,2*ie) = A(2*ie+1,2*ie)-kap;
-    A(2*ie+1,2*ie+1) = A(2*ie+1,2*ie+1)+kap;
+    A(gn(ieli,end),gn(ieli,end)) = A(gn(ieli,end),gn(ieli,end))+kap;
+    A(gn(ieli,end),gn(iele,1))   = A(gn(ieli,end),gn(iele,1))  -kap;
+    A(gn(iele,1),gn(ieli,end))   = A(gn(iele,1),gn(ieli,end))  -kap;
+    A(gn(iele,1),gn(iele,1))     = A(gn(iele,1),gn(iele,1))    +kap;
 end
 
 % apply natural BC
