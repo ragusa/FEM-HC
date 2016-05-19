@@ -46,13 +46,13 @@ npar.iel2zon=iel2zon;
 % polynomial degree
 npar.porder=1;
 % nbr of dofs per variable
-npar.ndofs = npar.porder*npar.nel*2;
+npar.ndofs = (npar.porder+1)*npar.nel;
 % connectivity
 
 gn=zeros(npar.nel,npar.porder+1);
 gn(1,:)=linspace(1,npar.porder+1,npar.porder+1);
 for iel=2:npar.nel
-    gn(iel,:)=[gn(iel-1,end)+npar.porder , gn(iel-1,2:end)+npar.porder+1 ];
+    gn(iel,:)=gn(iel-1,:) + npar.porder+1 ;
 end
 npar.gn=gn; clear gn;
 
@@ -115,7 +115,7 @@ L = dat.width;
 % ideally, we would analyze the connectivity to determine nnz
 nnz=(porder+3)*nel; %this is an upperbound, not exact
 % n: linear system size
-n=nel*porder*2;
+n=nel*(porder+1);
 % allocate memory
 A=spalloc(n,n,nnz);
 rhs=zeros(n,1);
@@ -133,6 +133,8 @@ k=m;
 f=zeros(porder+1,1);
 % store shapeset
 [b,dbdx] =feshpln(xq,porder);
+% store shape set at edges
+[be,dbedx] =feshpln([-1;1],porder);
 
 % definition of the weak form:
 % int_domain (grad u D grad b) - int_bd_domain (b D grad u n) ...
@@ -162,7 +164,14 @@ for iel=1:npar.nel
     rhs(gn(iel,:)) = rhs(gn(iel,:)) + f*Jac;
 end
 
+% loop on interiror edges
 for ie=1:(npar.nel-1)
+    % left (interior)/right (exterior) elements
+	ieli = ie;
+	iele = ie+1;
+    % values for 2 cells 1= left of edge, 2= right of edge
+    ce1=npar.iel2zon(ieli);
+    ce2=npar.iel2zon(iele);
     % element extremities
     x0=npar.x(ie);
     x1=npar.x(ie+1);
@@ -170,32 +179,28 @@ for ie=1:(npar.nel-1)
     % element lengths
     d1=x1-x0;
     d2=x2-x1;
-    % values for 2 cells
-    ce1=npar.iel2zon(ie);
-    ce2=npar.iel2zon(ie+1);
+    % conductivity values
     k1=dat.k{ce1}(x1);
     k2=dat.k{ce2}(x1);
     % compute local matrices + load vector
-    mee=x1*k2/(2*d2)*[-1 1;0 0];
-    mei=x1*k1/(2*d1)*[-1 1;0 0];
-    mie=x1*k2/(2*d2)*[0 0;1 -1];
-    mii=x1*k1/(2*d1)*[0 0;1 -1];
-    kap=x1*2*(k1/d1+k2/d2);
+    mee=x1*(k2/d2)*dbedx(1,:)'*be(1,:);
+    mei=x1*(k1/d1)*dbedx(end,:)'*be(1,:);
+    mie=x1*(-k2/d2)*dbedx(1,:)'*be(end,:);
+    mii=x1*(-k1/d1)*dbedx(end,:)'*be(end,:);
+    kap=2*x1*(k1/d1+k2/d2);
     % assemble
-    A(gn(ie,:),gn(ie,:)) = A(gn(ie,:),gn(ie,:)) + mii + transpose(mii);
-    A(gn(ie,:),gn(ie+1,:)) = A(gn(ie,:),gn(ie+1,:)) + mie + transpose(mei);
-    A(gn(ie+1,:),gn(ie,:)) = A(gn(ie+1,:),gn(ie,:)) + mei + transpose(mie);
-    A(gn(ie+1,:),gn(ie+1,:)) = A(gn(ie+1,:),gn(ie+1,:)) + mee + transpose(mee);
+    A(gn(ieli,:),gn(ieli,:)) = A(gn(ieli,:),gn(ieli,:)) + mii' + mii;
+    A(gn(ieli,:),gn(iele,:)) = A(gn(ieli,:),gn(iele,:)) + mie' + mei;
+    A(gn(iele,:),gn(ieli,:)) = A(gn(iele,:),gn(ieli,:)) + mei' + mie;
+    A(gn(iele,:),gn(iele,:)) = A(gn(iele,:),gn(iele,:)) + mee' + mee;
     % assemble
-    A(2*ie,2*ie) = A(2*ie,2*ie)+kap;
-    A(2*ie,2*ie+1) = A(2*ie,2*ie+1)-kap;
-    A(2*ie+1,2*ie) = A(2*ie+1,2*ie)-kap;
-    A(2*ie+1,2*ie+1) = A(2*ie+1,2*ie+1)+kap;
+    A(gn(ieli,end),gn(ieli,end)) = A(gn(ieli,end),gn(ieli,end))+kap;
+    A(gn(ieli,end),gn(iele,1))   = A(gn(ieli,end),gn(iele,1))  -kap;
+    A(gn(iele,1),gn(ieli,end))   = A(gn(iele,1),gn(ieli,end))  -kap;
+    A(gn(iele,1),gn(iele,1))     = A(gn(iele,1),gn(iele,1))    +kap;
 end
 
 % apply natural BC
-Dirichlet_nodes=[];
-Dirichlet_val=[];
 switch dat.bc.rite.type
     case 0 % Neumann, int_bd_domain (b D grad u n) is on the RHS
         rhs(n)=rhs(n)+dat.bc.rite.C;
@@ -203,18 +208,8 @@ switch dat.bc.rite.type
         A(n,n)=A(n,n)+dat.hcv*L(2);
         rhs(n)=rhs(n)+dat.hcv*dat.bc.rite.C*L(2);
     case 2 % Dirichlet
-        Dirichlet_nodes=[Dirichlet_nodes n];
-        Dirichlet_val=[Dirichlet_val dat.bc.rite.C];
-end
-% apply Dirichlet BC
-for i=1:length(Dirichlet_nodes);% loop on the number of constraints
-    id=Dirichlet_nodes(i);      % extract the dof of a constraint
-    bcval=Dirichlet_val(i);
-    rhs=rhs-bcval*A(:,id);  % modify the rhs using constrained value
-    A(id,:)=0; % set all the id-th row to zero
-    A(:,id)=0; % set all the id-th column to zero (symmetrize A)
-    A(id,id)=1;            % set the id-th diagonal to unity
-    rhs(id)=bcval;         % put the constrained value in the rhs
+        A([n-1 n],[n-1 n])=A([n-1 n],[n-1 n])+(kapn*be(:,end)*be(end,:)-2*kn*be(:,end)*dbedx(end,:)/dn-2*kn*dbedx(:,end)*be(end,:)/dn)*L(2);
+        rhs([n-1 n])=rhs([n-1 n])+dat.bc.rite.C*(kapn*be(:,end)-2*kn*dbedx(:,end)/dn)*L(2);
 end
 
 return

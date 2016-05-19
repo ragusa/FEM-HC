@@ -10,14 +10,16 @@ dat.esrc{1}=@zero_function;
 dat.esrc{2}=@esrc;
 dat.esrc{3}=@zero_function;
 
+dat.hgap=15764;
 dat.hcv=20000;
 dat.width=[0.003175 0.034823 0.036];
-bc.left.type=2; %0=neumann, 1=robin, 2=dirichlet
-bc.left.C=100; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
-bc.rite.type=2;
+bc.left.type=0; %0=neumann, 1=robin, 2=dirichlet
+bc.left.C=0; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
+bc.rite.type=1;
 bc.rite.C=400;
 dat.bc=bc; clear bc;
 
+gap_zone_ID=2;
 nel_zone = [ 2 10 1];
 
 % load the numerical parameters, npar, structure pertaining to numerics
@@ -26,6 +28,7 @@ if length(dat.width)~=length(nel_zone)
     error('not the same number of zones in dat.width and nel_zone');
 end
 npar.nel = sum(nel_zone);
+npar.nelgap = sum(nel_zone(1:gap_zone_ID));
 
 % domain
 tmp_width = [ 0 dat.width];
@@ -112,6 +115,9 @@ function [A,rhs]=assemble_system(npar,dat)
 porder= npar.porder;
 gn    = npar.gn;
 nel   = npar.nel;
+g = npar.nelgap;
+g1=g*(porder+1);
+g2=g*(porder+1)+1;
 % ideally, we would analyze the connectivity to determine nnz
 nnz=(porder+3)*nel; %this is an upperbound, not exact
 % n: linear system size
@@ -141,7 +147,7 @@ f=zeros(porder+1,1);
 %      = int_domain (b rhs)
 
 % loop over elements
-for iel=1:npar.nel
+for iel=1:nel
     % element extremities
     x0=npar.x(iel);
     x1=npar.x(iel+1);
@@ -164,8 +170,10 @@ for iel=1:npar.nel
     rhs(gn(iel,:)) = rhs(gn(iel,:)) + f*Jac;
 end
 
+xg=[1:(g-1) (g+1):(nel-1)] ;
+
 % loop on interiror edges
-for ie=1:(npar.nel-1)
+for ie=xg
     % left (interior)/right (exterior) elements
 	ieli = ie;
 	iele = ie+1;
@@ -200,6 +208,11 @@ for ie=1:(npar.nel-1)
     A(gn(iele,1),gn(iele,1))     = A(gn(iele,1),gn(iele,1))    +kap;
 end
 
+A(g1,g1)=A(g1,g1)+dat.hgap/2;
+A(g1,g2)=A(g1,g2)-dat.hgap/2;
+A(g2,g1)=A(g2,g1)-dat.hgap/2;
+A(g2,g2)=A(g2,g2)+dat.hgap/2;
+
 % apply natural BC
     % element extremities
     x0=npar.x(1);
@@ -222,7 +235,7 @@ switch dat.bc.left.type
     case 1 % Robin
         A(1,1)=A(1,1)+dat.hcv;
         rhs(1)=rhs(1)+dat.hcv*dat.bc.left.C;
-    case 2 % Dirichlet
+     case 2 % Dirichlet
         A([1 2],[1 2])=A([1 2],[1 2])+kap1*be(:,1)*be(1,:)+2*k1*be(:,1)*dbedx(1,:)/d1+2*k1*dbedx(:,1)*be(1,:)/d1;
         rhs([1 2])=rhs([1 2])+dat.bc.left.C*(kap1*be(:,1)+2*k1*dbedx(:,1)/d1);
 end
@@ -316,7 +329,7 @@ end
 
 function a=verif_hc_eq(dat)
 
-k=dat.k; src=dat.esrc; hcv=dat.hcv; L=dat.width;
+k=dat.k; src=dat.esrc; hgap=dat.hgap; hcv=dat.hcv; L=dat.width;
 
 % general form of the solution:
 % Zone 1 : T1 = B1*x + E1
@@ -370,15 +383,20 @@ b(2) =-src{2}(L(1))/(2*k{2}(L(1)))*L(1)*L(1);
 mat(3,1:6) =[k{1}(L(1))/k{2}(L(1)),0,-1,0,0,0];
 b(3) =-src{2}(L(1))/k{2}(L(1))*L(1);
 
-% continuity of T and flux between zone 2 and zone 3 (interface L2)
-% T2(L2)=T3(L2) <==> (-q/2k2)*(L2^2)+B2*L2+E2=B3*L2+E3
-% <==> B2*L2+E2-B3*L2-E3=(q/2k2)*(L2^2)
-mat(4,1:6) =[0,0,L(2),1,-L(2),-1];
-b(4) =src{2}(L(2))/(2*k{2}(L(2)))*L(2)*L(2);
-% phi2(L2)=phi3(L2) <==> k2*((-q/k2)*L2+B2)=k3*B3
-% <==> B2*k2-B3*k3=q*L2
-mat(5,1:6) =[0,0,k{2}(L(2)),0,-k{3}(L(2)),0];
-b(5) =src{2}(L(2))*L(2);
+% discontinuity of T between zone 2 and zone 3 (interface L2)
+% T2(L2)=(-q/2k2)*(L2^2)+B2*L2+E2
+% T3(L2)=B3*L2+E3
+% Tg=(T2(L2)+T3(L2))/2
+% -k2*dT2/dx=hgap(T2(L2)-Tg)
+% <==> -k2(-q/k2*L2+B2)=hgap(T2(L2)-T3(L2))/2
+% <==> (2k2+L2*hgap)B2+hgap*E2-L2*hgap*B3-hgap*E3=hgap*q/2k2*(L2^2)+2*q*L2
+mat(4,1:6) =[0,0,2*k{2}(L(2))+L(2)*hgap,hgap,-L(2)*hgap,-hgap];
+b(4) =hgap*(src{2}(L(2))/(2*k{2}(L(2))))*L(2)*L(2)+2*src{2}(L(2))*L(2);
+% -k3*dT3/dx=hgap(Tg-T3(L2))
+% <==> -k3*B3=hgap(T2(L2)-T3(L2))/2
+% <==> L2*hgap*B2+hgap*E2+(2k3-L2*hgap)*B3-hgap*E3=hgap*q/2k2*(L2^2)
+mat(5,1:6) =[0,0,L(2)*hgap,hgap,2*k{3}(L(2))-L(2)*hgap,-hgap];
+b(5) =hgap*(src{2}(L(2))/(2*k{2}(L(2))))*L(2)*L(2);
 
 a=mat\b';
 
