@@ -1,7 +1,14 @@
-function F=driver
+function F=hcd
+% ADD A SMALL DESCRIPTION REGARDING WHAT THIS FUNCTION DOES IN ALL YOUR
+% FILES
+%
+% Solves the heat conduction equation in 1-D slab geometry using DFEM
+% An arbitrary number of material zones can be used but the analytical
+% solution assumes 3 zones are used. The conductivities and the volumetric
+% sources can be spatially dependent.
 
 % clear the console screen
-clc; clear all; close all;clf
+clc; clear all; close all;
 % load the data structure with info pertaining to the physical problem
 dat.k{1}=@k_Zr;
 dat.k{2}=@k_fuel;
@@ -13,17 +20,23 @@ dat.esrc{3}=@zero_function;
 dat.hcv=20000;
 dat.width=[0.003175 0.034823 0.036];
 bc.left.type=2; %0=neumann, 1=robin, 2=dirichlet
-bc.left.C=100; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
+bc.left.C=400; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
 bc.rite.type=2;
-bc.rite.C=400;
+bc.rite.C=100;
 dat.bc=bc; clear bc;
 
-nel_zone = [ 2 10 1];
+nel_zone = [ 1 2 1];
 
 % load the numerical parameters, npar, structure pertaining to numerics
 % number of elements
 if length(dat.width)~=length(nel_zone)
     error('not the same number of zones in dat.width and nel_zone');
+end
+if length(dat.k)~=length(nel_zone)
+    error('not the same number of zones in dat.k and nel_zone');
+end
+if length(dat.esrc)~=length(nel_zone)
+    error('not the same number of zones in dat.esrc and nel_zone');
 end
 npar.nel = sum(nel_zone);
 
@@ -45,7 +58,7 @@ end
 npar.x=x;
 npar.iel2zon=iel2zon;
 % polynomial degree
-npar.porder=1;
+npar.porder=5;
 % nbr of dofs per variable
 npar.ndofs = (npar.porder+1)*npar.nel;
 % connectivity
@@ -62,27 +75,39 @@ F = solve_fem3(dat,npar);
 % plot
 figure(1)
 
-for ied=1:npar.nel
-npar.xf((2*ied-1):(2*ied))=[npar.x(ied) npar.x(ied+1)] ;
+% create x values for plotting FEM solution
+npar.xf=zeros(npar.nel*(npar.porder+1),1);
+for iel=1:npar.nel
+    ibeg = (iel-1)*(npar.porder+1)+1;
+    iend = (iel  )*(npar.porder+1)  ;
+    npar.xf(ibeg:iend)=linspace(npar.x(iel),npar.x(iel+1),npar.porder+1) ;
 end
 
-% verification is always good
-a=verif_hc_eq(dat);
-
-% get coefficient for the analytical solution
-k=dat.k; src=dat.esrc; L=dat.width;
-x1=linspace(0,L(1));
-x2=linspace(L(1),L(2));
-x3=linspace(L(2),L(3));
-y1=a(1)*x1+a(2);
-y2=-src{2}(x2)/(2*k{2}(x2))*(x2.^2)+a(3)*x2+a(4);
-y3=a(5)*x3+a(6);
-
-plot(npar.xf,F,'.-',x1,y1,'r-',x2,y2,'r-',x3,y3,'r-'); hold all;
-title('1D heat conduction problem, 3 zones, without T gap, Cartesian coordinates')
-xlabel('Width')
-ylabel('Temperature')
-legend('FEM','Analytical','Location','northoutside','Orientation','horizontal')
+if length(nel_zone)==3
+    % verification is always good
+    a=verif_hc_eq(dat);
+    
+    % get coefficient for the analytical solution
+    k=dat.k; src=dat.esrc; L=dat.width;
+    x1=linspace(0,L(1));
+    x2=linspace(L(1),L(2));
+    x3=linspace(L(2),L(3));
+    y1=a(1)*x1+a(2);
+    y2=-src{2}(x2)/(2*k{2}(x2))*(x2.^2)+a(3)*x2+a(4);
+    y3=a(5)*x3+a(6);
+    
+    plot(npar.xf,F,'.-',[x1 x2 x3],[y1 y2 y3],'r-'); hold all;
+    title('1D heat conduction problem, 3 zones, without T gap, Cartesian coordinates')
+    xlabel('Width')
+    ylabel('Temperature')
+    legend('FEM','Analytical','Location','northoutside','Orientation','horizontal')
+else
+    plot(npar.xf,F,'.-'); hold all;
+    title('1D heat conduction problem, n zones, without T gap, Cartesian coordinates')
+    xlabel('Width')
+    ylabel('Temperature')
+    legend('FEM','Location','northoutside','Orientation','horizontal')
+end
 
 return
 end
@@ -164,11 +189,11 @@ for iel=1:npar.nel
     rhs(gn(iel,:)) = rhs(gn(iel,:)) + f*Jac;
 end
 
-% loop on interiror edges
+% loop on interior edges
 for ie=1:(npar.nel-1)
     % left (interior)/right (exterior) elements
-	ieli = ie;
-	iele = ie+1;
+    ieli = ie;
+    iele = ie+1;
     % values for 2 cells 1= left of edge, 2= right of edge
     ce1=npar.iel2zon(ieli);
     ce2=npar.iel2zon(iele);
@@ -201,21 +226,21 @@ for ie=1:(npar.nel-1)
 end
 
 % apply natural BC
-    % element extremities
-    x0=npar.x(1);
-    x1=npar.x(2);
-    xnm=npar.x(end-1);
-    xn=npar.x(end);
-    % element lengths
-    d1=x1-x0;
-    dn=xn-xnm;
-    % conductivity values
-    k1=dat.k{npar.iel2zon(1)}(x1);
-    kn=dat.k{npar.iel2zon(end)}(xn);
-    % compute load vector
-    kap1=8*k1/d1;
-    kapn=8*kn/dn;
-    
+% element extremities
+x0=npar.x(1);
+x1=npar.x(2);
+xnm=npar.x(end-1);
+xn=npar.x(end);
+% element lengths
+d1=x1-x0;
+dn=xn-xnm;
+% conductivity values
+k1=dat.k{npar.iel2zon(1)}(x1);
+kn=dat.k{npar.iel2zon(end)}(xn);
+% compute load vector
+kap1=8*k1/d1;
+kapn=8*kn/dn;
+
 switch dat.bc.left.type
     case 0 % Neumann, int_bd_domain (b D grad u n) is on the RHS
         rhs(1)=rhs(1)+dat.bc.left.C;
@@ -223,8 +248,12 @@ switch dat.bc.left.type
         A(1,1)=A(1,1)+dat.hcv;
         rhs(1)=rhs(1)+dat.hcv*dat.bc.left.C;
     case 2 % Dirichlet
-        A([1 2],[1 2])=A([1 2],[1 2])+kap1*be(:,1)*be(1,:)+2*k1*be(:,1)*dbedx(1,:)/d1+2*k1*dbedx(:,1)*be(1,:)/d1;
-        rhs([1 2])=rhs([1 2])+dat.bc.left.C*(kap1*be(:,1)+2*k1*dbedx(:,1)/d1);
+        minus_one=1;
+        A(gn(1,:),gn(1,:))=A(gn(1,:),gn(1,:))+kap1*be(minus_one,:)'*be(minus_one,:)...
+            +2*k1*be(minus_one,:)'   *dbedx(minus_one,:)/d1...
+            +2*k1*dbedx(minus_one,:)'*be(minus_one,:)   /d1;
+        rhs(gn(1,:))=rhs(gn(1,:))+dat.bc.left.C*...
+            ( kap1*be(minus_one,:)' +2*k1*dbedx(minus_one,:)'/d1 );
 end
 switch dat.bc.rite.type
     case 0 % Neumann, int_bd_domain (b D grad u n) is on the RHS
@@ -233,8 +262,13 @@ switch dat.bc.rite.type
         A(n,n)=A(n,n)+dat.hcv;
         rhs(n)=rhs(n)+dat.hcv*dat.bc.rite.C;
     case 2 % Dirichlet
-        A([n-1 n],[n-1 n])=A([n-1 n],[n-1 n])+kapn*be(:,end)*be(end,:)-2*kn*be(:,end)*dbedx(end,:)/dn-2*kn*dbedx(:,end)*be(end,:)/dn;
-        rhs([n-1 n])=rhs([n-1 n])+dat.bc.rite.C*(kapn*be(:,end)-2*kn*dbedx(:,end)/dn);
+        plus_one =2;
+        A(gn(end,:),gn(end,:))=A(gn(end,:),gn(end,:))...
+            +kapn*be(plus_one,:)'*be(plus_one,:)...
+            -2*kn*be(plus_one,:)'   *dbedx(plus_one,:)/dn...
+            -2*kn*dbedx(plus_one,:)'*be(plus_one,:)   /dn;
+        rhs(gn(end,:))=rhs(gn(end,:))+dat.bc.rite.C*...
+            ( kapn*be(plus_one,:)' -2*kn*dbedx(plus_one,:)'/dn );
 end
 
 return
