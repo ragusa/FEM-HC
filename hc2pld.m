@@ -1,6 +1,12 @@
-function F=driver
+function F=hc2pld
+% Solves the heat conduction equation in 1-D fuel-like geometry using DFEM
+% without T gap.
+% An arbitrary number of material zones can be used but the analytical
+% solution assumes 3 zones are used. The conductivities and the volumetric
+% sources can be spatially dependent.
+
 % clear the console screen
-clc; clear all; close all;clf
+clc; clear all; close all;
 % load the data structure with info pertaining to the physical problem
 dat.k{1}=@k_Zr;
 dat.k{2}=@k_fuel;
@@ -16,13 +22,18 @@ bc.rite.type=1;
 bc.rite.C=400;
 dat.bc=bc; clear bc;
 
-gap_zone_ID=2;
 nel_zone = [ 10 100 5];
 
 % load the numerical parameters, npar, structure pertaining to numerics
 % number of elements
 if length(dat.width)~=length(nel_zone)
     error('not the same number of zones in dat.width and nel_zone');
+end
+if length(dat.k)~=length(nel_zone)
+    error('not the same number of zones in dat.k and nel_zone');
+end
+if length(dat.esrc)~=length(nel_zone)
+    error('not the same number of zones in dat.esrc and nel_zone');
 end
 npar.nel = sum(nel_zone);
 
@@ -44,7 +55,7 @@ end
 npar.x=x;
 npar.iel2zon=iel2zon;
 % polynomial degree
-npar.porder=1;
+npar.porder=2;
 % nbr of dofs per variable
 npar.ndofs = (npar.porder+1)*npar.nel;
 % connectivity
@@ -61,27 +72,39 @@ F = solve_fem3(dat,npar);
 % plot
 figure(1)
 
-for ied=1:npar.nel
-npar.xf((2*ied-1):(2*ied))=[npar.x(ied) npar.x(ied+1)] ;
+% create x values for plotting FEM solution
+npar.xf=zeros(npar.nel*(npar.porder+1),1);
+for iel=1:npar.nel
+    ibeg = (iel-1)*(npar.porder+1)+1;
+    iend = (iel  )*(npar.porder+1)  ;
+    npar.xf(ibeg:iend)=linspace(npar.x(iel),npar.x(iel+1),npar.porder+1) ;
 end
 
-% verification is always good
-a=verif_hc_eq(dat);
+if length(nel_zone)==3
+    % verification is always good
+    a=verif_hc_eq(dat);
 
-% get coefficient for the analytical solution
-k=dat.k; src=dat.esrc; L=dat.width;
-r1=linspace(0,L(1));
-r2=linspace(L(1),L(2));
-r3=linspace(L(2),L(3));
-y1=a(1)+0*r1;
-y2=-src{2}(r2)/(4*k{2}(r2))*(r2.^2)+a(2)*log(r2)+a(3);
-y3=a(4)*log(r3)+a(5);
+    % get coefficient for the analytical solution
+    k=dat.k; src=dat.esrc; L=dat.width;
+    r1=linspace(0,L(1));
+    r2=linspace(L(1),L(2));
+    r3=linspace(L(2),L(3));
+    y1=a(1)+0*r1;
+    y2=-src{2}(r2)/(4*k{2}(r2))*(r2.^2)+a(2)*log(r2)+a(3);
+    y3=a(4)*log(r3)+a(5);
 
-plot(npar.xf,F,'.-',r1,y1,'r-',r2,y2,'r-',r3,y3,'r-'); hold all;
-title('1D heat conduction problem, 3 zones, without T gap, cylindrical coordinates')
-legend('FEM','Analytical','Location','northoutside','Orientation','horizontal')
-xlabel('Width')
-ylabel('Temperature')
+    plot(npar.xf,F,'.-',[r1 r2 r3],[y1 y2 y3],'r-'); hold all;
+    title('1D heat conduction problem, 3 zones, without T gap, cylindrical coordinates')
+    legend('FEM','Analytical','Location','northoutside','Orientation','horizontal')
+    xlabel('Width')
+    ylabel('Temperature')
+else
+    plot(npar.xf,F,'.-'); hold all;
+    title('1D heat conduction problem, 3 zones, without T gap, cylindrical coordinates')
+    legend('FEM','Location','northoutside','Orientation','horizontal')
+    xlabel('Width')
+    ylabel('Temperature')
+end
 
 return
 end
@@ -164,7 +187,7 @@ for iel=1:npar.nel
     rhs(gn(iel,:)) = rhs(gn(iel,:)) + f*Jac;
 end
 
-% loop on interiror edges
+% loop on interior edges
 for ie=1:(npar.nel-1)
     % left (interior)/right (exterior) elements
 	ieli = ie;
@@ -201,15 +224,30 @@ for ie=1:(npar.nel-1)
 end
 
 % apply natural BC
+% element extremities
+xnm=npar.x(end-1);
+xn=npar.x(end);
+% element lengths
+dn=xn-xnm;
+% conductivity values
+kn=dat.k{npar.iel2zon(end)}(xn);
+% compute load vector
+kapn=8*kn/dn;
+
 switch dat.bc.rite.type
     case 0 % Neumann, int_bd_domain (b D grad u n) is on the RHS
         rhs(n)=rhs(n)+dat.bc.rite.C;
     case 1 % Robin
-        A(n,n)=A(n,n)+dat.hcv*L(2);
-        rhs(n)=rhs(n)+dat.hcv*dat.bc.rite.C*L(2);
+        A(n,n)=A(n,n)+L(2)*dat.hcv;
+        rhs(n)=rhs(n)+L(2)*dat.hcv*dat.bc.rite.C;
     case 2 % Dirichlet
-        A([n-1 n],[n-1 n])=A([n-1 n],[n-1 n])+(kapn*be(:,end)*be(end,:)-2*kn*be(:,end)*dbedx(end,:)/dn-2*kn*dbedx(:,end)*be(end,:)/dn)*L(2);
-        rhs([n-1 n])=rhs([n-1 n])+dat.bc.rite.C*(kapn*be(:,end)-2*kn*dbedx(:,end)/dn)*L(2);
+        plus_one =2;
+        A(gn(end,:),gn(end,:))=A(gn(end,:),gn(end,:))...
+            +L(2)*(kapn*be(plus_one,:)'*be(plus_one,:)...
+            -2*kn*be(plus_one,:)'   *dbedx(plus_one,:)/dn...
+            -2*kn*dbedx(plus_one,:)'*be(plus_one,:)   /dn);
+        rhs(gn(end,:))=rhs(gn(end,:))+L(2)*dat.bc.rite.C*...
+            ( kapn*be(plus_one,:)' -2*kn*dbedx(plus_one,:)'/dn );
 end
 
 return
