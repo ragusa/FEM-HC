@@ -98,13 +98,13 @@ if length(nel_zone)==3
     y3=a(5)*x3+a(6);
 
     plot(npar.xf,F,'.-',[x1 x2 x3],[y1 y2 y3],'r-'); hold all;
-    title('1D heat conduction problem, 3 zones, without T gap, Cartesian coordinates')
+    title('1D heat conduction problem, 3 zones, with T gap, Cartesian coordinates')
     xlabel('Width')
     ylabel('Temperature')
     legend('FEM','Analytical','Location','northoutside','Orientation','horizontal')
 else
     plot(npar.xf,F,'.-'); hold all;
-    title('1D heat conduction problem, n zones, without T gap, Cartesian coordinates')
+    title('1D heat conduction problem, n zones, with T gap, Cartesian coordinates')
     xlabel('Width')
     ylabel('Temperature')
     legend('FEM','Location','northoutside','Orientation','horizontal')

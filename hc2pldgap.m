@@ -97,13 +97,13 @@ if length(nel_zone)==3
     y3=a(4)*log(r3)+a(5);
 
     plot(npar.xf,F,'.-',[r1 r2 r3],[y1 y2 y3],'r-'); hold all;
-    title('1D heat conduction problem, 3 zones, without T gap, cylindrical coordinates')
+    title('1D heat conduction problem, 3 zones, with T gap, cylindrical coordinates')
     legend('FEM','Analytical','Location','northoutside','Orientation','horizontal')
     xlabel('Width')
     ylabel('Temperature')
 else
     plot(npar.xf,F,'.-'); hold all;
-    title('1D heat conduction problem, 3 zones, without T gap, cylindrical coordinates')
+    title('1D heat conduction problem, 3 zones, with T gap, cylindrical coordinates')
     legend('FEM','Location','northoutside','Orientation','horizontal')
     xlabel('Width')
     ylabel('Temperature')

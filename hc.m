@@ -1,6 +1,12 @@
-function F=driver
+function F=hc
+% Solves the heat conduction equation in 1-D slab geometry using CFEM
+% without T gap.
+% An arbitrary number of material zones can be used but the analytical
+% solution assumes 3 zones are used. The conductivities and the volumetric
+% sources can be spatially dependent.
+
 % clear the console screen
-clc; clear all; close all;clf
+clc; clear all; close all;
 % load the data structure with info pertaining to the physical problem
 dat.k{1}=@k_Zr;
 dat.k{2}=@k_fuel;
