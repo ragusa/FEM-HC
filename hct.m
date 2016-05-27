@@ -16,21 +16,21 @@ dat.esrc{2}=@esrct;
 dat.esrc{3}=@zero_functiont;
 
 dat.hcv=20000;
-dat.rho=995.74;
-dat.cp=4182.59;
+dat.rho=10412; % kg/m3;
+dat.cp=340;   % J/kg/C;
 dat.width=[0.003175 0.034823 0.036];
-dat.duration=60000;
-dat.deltat=60;
+dat.duration=100; % in sec
 dat.Tinit=500;
 dat.curve=10; %number of the curves to plot, max 14 curves
 bc.left.type=0; %0=neumann, 1=robin, 2=dirichlet
 bc.left.C=0; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
-bc.rite.type=1;
-bc.rite.C=400;
+bc.rite.type=2;
+bc.rite.C=dat.Tinit;
 dat.bc=bc; clear bc;
 
 % number of time points
-npar.nt=round(dat.duration/dat.deltat+1);
+npar.n_time_steps=100; % total number of time steps to run
+npar.delta_t=dat.duration/npar.n_time_steps;
 
 nel_zone = [ 1 10 2];
 
@@ -78,15 +78,44 @@ end
 npar.gn=gn; clear gn;
 
 % assemble and solve system
-F = assemble_solve(dat,npar);
+T = assemble_solve(dat,npar);
 % plot
-plot_solution(dat,npar,F)
+plot_solution(dat,npar,T)
 
 return
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function T=assemble_solve(dat,npar)
+function T=time_solve(dat,npar)
+
+
+% initial condition
+nel   = npar.nel;
+porder= npar.porder;
+n=nel*porder+1;
+T_old=dat.Tinit*ones(n,1);
+
+delta_t= dat.deltat;
+
+% initialisation t=0
+T=zeros(n,npar.n_time_steps);
+
+
+% loop over elements
+end_time=0;
+for it=1:npar.n_time_steps
+    end_time=end_time+delta_t;
+    % solve the FME system for a given time step
+    T_old=assemble_solve(dat,npar,end_time,T_old);
+	% save solutions at different time points
+    T(:,it)=T_old;
+end
+
+return
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function T=assemble_solve(dat,npar,time,T_old)
 
 % assemble the matrix, the rhs, apply BC and solve
 
@@ -94,12 +123,9 @@ function T=assemble_solve(dat,npar)
 porder= npar.porder;
 gn    = npar.gn;
 nel   = npar.nel;
-nt    = npar.nt;
 rho   = dat.rho;
 cp    = dat.cp;
-duration=dat.duration;
-deltat= dat.deltat;
-Tinit = dat.Tinit;
+delta_t= dat.delta_t;
 % ideally, we would analyze the connectivity to determine nnz
 nnz=(porder+3)*nel; %this is an upperbound, not exact
 % n: linear system size
@@ -132,73 +158,67 @@ f=zeros(porder+1,1);
 %      = int_domain (b rhs)
 
 % loop over elements
-inc=1;
-for t=0:deltat:duration
-  
-    for iel=1:nel
-        % element extremities
-        x0=npar.x(iel);
-        x1=npar.x(iel+1);
-        % jacobian of the transformation to the ref. element
-        Jac=(x1-x0)/2;
-        % get x values in the interval
-        x=(x1+x0)/2+xq*(x1-x0)/2;
-        my_zone=npar.iel2zon(iel);
-        d=dat.k{my_zone}(x);
-        q=dat.esrc{my_zone}(x,t);
-        % compute local matrices + load vector
-        for i=1:porder+1
-            for j=1:porder+1
-                m(i,j)= dot(rho.*cp.*wq.*b(:,i), b(:,j));
-                k(i,j)= dot(d.*wq.*dbdx(:,i), dbdx(:,j));
-            end
-            f(i)= dot(q.*wq, b(:,i));
+for iel=1:nel
+    % element extremities
+    x0=npar.x(iel);
+    x1=npar.x(iel+1);
+    % jacobian of the transformation to the ref. element
+    Jac=(x1-x0)/2;
+    % get x values in the interval
+    x=(x1+x0)/2+xq*(x1-x0)/2;
+    my_zone=npar.iel2zon(iel);
+    d=dat.k{my_zone}(x);
+    q=dat.esrc{my_zone}(x,time);
+    % compute local matrices + load vector
+    for i=1:porder+1
+        for j=1:porder+1
+            m(i,j)= dot(rho.*cp.*wq.*b(:,i), b(:,j));
+            k(i,j)= dot(d.*wq.*dbdx(:,i), dbdx(:,j));
         end
-        % assemble
-        A(gn(iel,:),gn(iel,:)) = A(gn(iel,:),gn(iel,:)) + m*Jac + deltat*k/Jac;
-        rhs(gn(iel,:)) = rhs(gn(iel,:)) + m*Jac*Tprevi(gn(iel,:)) + deltat*f*Jac;
+        f(i)= dot(q.*wq, b(:,i));
     end
-    
-	% apply natural BC
-	Dirichlet_nodes=[];
-	Dirichlet_val=[];
-	switch dat.bc.left.type
-        case 0 % Neumann, int_bd_domain (b D grad u n) is on the RHS
-            rhs(1)=rhs(1)+dat.bc.left.C;
-        case 1 % Robin
-            A(1,1)=A(1,1)+dat.hcv;
-            rhs(1)=rhs(1)+dat.hcv*dat.bc.left.C;
-        case 2 % Dirichlet
-            Dirichlet_nodes=[Dirichlet_nodes 1];
-            Dirichlet_val=[Dirichlet_val dat.bc.left.C];
-    end
-    switch dat.bc.rite.type
-        case 0 % Neumann, int_bd_domain (b D grad u n) is on the RHS
-            rhs(n)=rhs(n)+dat.bc.rite.C;
-        case 1 % Robin
-            A(n,n)=A(n,n)+dat.hcv;
-            rhs(n)=rhs(n)+dat.hcv*dat.bc.rite.C;
-        case 2 % Dirichlet
-            Dirichlet_nodes=[Dirichlet_nodes n];
-            Dirichlet_val=[Dirichlet_val dat.bc.rite.C];
-    end
-	% apply Dirichlet BC
-	for i=1:length(Dirichlet_nodes);% loop on the number of constraints
-        id=Dirichlet_nodes(i);      % extract the dof of a constraint
-        bcval=Dirichlet_val(i);
-        rhs=rhs-bcval*A(:,id);  % modify the rhs using constrained value
-        A(id,:)=0; % set all the id-th row to zero
-        A(:,id)=0; % set all the id-th column to zero (symmetrize A)
-        A(id,id)=1;            % set the id-th diagonal to unity
-        rhs(id)=bcval;         % put the constrained value in the rhs
-	end
-
-    % solve
-    Tprevi=A\rhs;
-	% save solutions at different time points
-    T(:,inc)=Tprevi(:);
-	inc=inc+1;
+    % assemble
+    A(gn(iel,:),gn(iel,:)) = A(gn(iel,:),gn(iel,:)) + m*Jac + delta_t*k/Jac;
+    rhs(gn(iel,:)) = rhs(gn(iel,:)) + m*Jac*T_old(gn(iel,:)) + delta_t*f*Jac;
 end
+
+% apply natural BC
+Dirichlet_nodes=[];
+Dirichlet_val=[];
+switch dat.bc.left.type
+    case 0 % Neumann, int_bd_domain (b D grad u n) is on the RHS
+        rhs(1)=rhs(1)+dat.bc.left.C;
+    case 1 % Robin
+        A(1,1)=A(1,1)+dat.hcv;
+        rhs(1)=rhs(1)+dat.hcv*dat.bc.left.C;
+    case 2 % Dirichlet
+        Dirichlet_nodes=[Dirichlet_nodes 1];
+        Dirichlet_val=[Dirichlet_val dat.bc.left.C];
+end
+switch dat.bc.rite.type
+    case 0 % Neumann, int_bd_domain (b D grad u n) is on the RHS
+        rhs(n)=rhs(n)+dat.bc.rite.C;
+    case 1 % Robin
+        A(n,n)=A(n,n)+dat.hcv;
+        rhs(n)=rhs(n)+dat.hcv*dat.bc.rite.C;
+    case 2 % Dirichlet
+        Dirichlet_nodes=[Dirichlet_nodes n];
+        Dirichlet_val=[Dirichlet_val dat.bc.rite.C];
+end
+% apply Dirichlet BC
+for i=1:length(Dirichlet_nodes);% loop on the number of constraints
+    id=Dirichlet_nodes(i);      % extract the dof of a constraint
+    bcval=Dirichlet_val(i);
+    rhs=rhs-bcval*A(:,id);  % modify the rhs using constrained value
+    A(id,:)=0; % set all the id-th row to zero
+    A(:,id)=0; % set all the id-th column to zero (symmetrize A)
+    A(id,id)=1;            % set the id-th diagonal to unity
+    rhs(id)=bcval;         % put the constrained value in the rhs
+end
+
+% solve
+T=A\rhs;
+
 
 return
 end
