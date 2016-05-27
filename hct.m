@@ -19,7 +19,7 @@ dat.hcv=20000;
 dat.hgap=15764; % W/(m^2.C)
 dat.rho=10412; % kg/m3;
 dat.cp=340;   % J/kg/C;
-dat.width=[0.003175 0.034823/2 0.035331];
+dat.width=[0.003175 0.0174115 0.0179195];
 dat.duration=10000; % in sec
 dat.Tinit=30;
 bc.left.type=0; %0=neumann, 1=robin, 2=dirichlet
@@ -35,7 +35,7 @@ npar.delta_t=dat.duration/npar.n_time_steps;
 % number of the curves to plot, max 14 curves
 npar.curve=10; 
 
-nel_zone = [ 1 10 2];
+nel_zone = [ 10 100 20];
 
 % load the numerical parameters, npar, structure pertaining to numerics
 % number of elements
