@@ -16,11 +16,12 @@ dat.esrc{2}=@esrct;
 dat.esrc{3}=@zero_functiont;
 
 dat.hcv=20000;
+dat.hgap=15764; % W/(m^2.C)
 dat.rho=10412; % kg/m3;
 dat.cp=340;   % J/kg/C;
-dat.width=[0.003175 0.034823 0.036];
+dat.width=[0.003175 0.034823/2 0.035331];
 dat.duration=10000; % in sec
-dat.Tinit=500;
+dat.Tinit=30;
 bc.left.type=0; %0=neumann, 1=robin, 2=dirichlet
 bc.left.C=0; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
 bc.rite.type=2;
