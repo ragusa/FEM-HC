@@ -19,7 +19,7 @@ dat.hcv=20000;
 dat.rho=10412; % kg/m3;
 dat.cp=340;   % J/kg/C;
 dat.width=[0.003175 0.034823 0.036];
-dat.duration=100; % in sec
+dat.duration=10000; % in sec
 dat.Tinit=500;
 bc.left.type=0; %0=neumann, 1=robin, 2=dirichlet
 bc.left.C=0; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
@@ -120,7 +120,7 @@ return
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function T=assemble_solve(dat,npar,end_time,T_old)
+function T=assemble_solve(dat,npar,time,T_old)
 
 % assemble the matrix, the rhs, apply BC and solve
 
@@ -170,7 +170,7 @@ for iel=1:nel
     x=(x1+x0)/2+xq*(x1-x0)/2;
     my_zone=npar.iel2zon(iel);
     d=dat.k{my_zone}(x);
-    q=dat.esrc{my_zone}(x,end_time);
+    q=dat.esrc{my_zone}(x,time);
     % compute local matrices + load vector
     for i=1:porder+1
         for j=1:porder+1
