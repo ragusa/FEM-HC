@@ -21,7 +21,6 @@ dat.cp=340;   % J/kg/C;
 dat.width=[0.003175 0.034823 0.036];
 dat.duration=100; % in sec
 dat.Tinit=500;
-dat.curve=10; %number of the curves to plot, max 14 curves
 bc.left.type=0; %0=neumann, 1=robin, 2=dirichlet
 bc.left.C=0; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
 bc.rite.type=2;
@@ -31,6 +30,9 @@ dat.bc=bc; clear bc;
 % number of time points
 npar.n_time_steps=100; % total number of time steps to run
 npar.delta_t=dat.duration/npar.n_time_steps;
+
+% number of the curves to plot, max 14 curves
+npar.curve=10; 
 
 nel_zone = [ 1 10 2];
 
@@ -77,8 +79,8 @@ for iel=2:npar.nel
 end
 npar.gn=gn; clear gn;
 
-% assemble and solve system
-T = assemble_solve(dat,npar);
+% solve system
+T = time_solve(dat,npar);
 % plot
 plot_solution(dat,npar,T)
 
@@ -88,23 +90,26 @@ end
 
 function T=time_solve(dat,npar)
 
-
-% initial condition
+% shortcuts
 nel   = npar.nel;
 porder= npar.porder;
+n_time_steps=npar.n_time_steps;
+delta_t=npar.delta_t;
+curve=npar.curve;
+
 n=nel*porder+1;
+
+% initial condition
+T=zeros(n,curve);
 T_old=dat.Tinit*ones(n,1);
 
-delta_t= dat.deltat;
+nummax=n_time_steps+1;
+increment=round(nummax/curve);
 
-% initialisation t=0
-T=zeros(n,npar.n_time_steps);
-
-
-% loop over elements
+% loop over time
 end_time=0;
-for it=1:npar.n_time_steps
-    end_time=end_time+delta_t;
+for it=1:curve
+    end_time=end_time+increment*delta_t;
     % solve the FME system for a given time step
     T_old=assemble_solve(dat,npar,end_time,T_old);
 	% save solutions at different time points
@@ -115,7 +120,7 @@ return
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function T=assemble_solve(dat,npar,time,T_old)
+function T=assemble_solve(dat,npar,end_time,T_old)
 
 % assemble the matrix, the rhs, apply BC and solve
 
@@ -123,9 +128,10 @@ function T=assemble_solve(dat,npar,time,T_old)
 porder= npar.porder;
 gn    = npar.gn;
 nel   = npar.nel;
+delta_t=npar.delta_t;
 rho   = dat.rho;
 cp    = dat.cp;
-delta_t= dat.delta_t;
+
 % ideally, we would analyze the connectivity to determine nnz
 nnz=(porder+3)*nel; %this is an upperbound, not exact
 % n: linear system size
@@ -133,11 +139,7 @@ n=nel*porder+1;
 % allocate memory
 A=spalloc(n,n,nnz);
 rhs=zeros(n,1);
-
-% initialisation t=0
-Tprevi=zeros(n,1);
-Tprevi(:)=Tinit;
-T=zeros(n,nt);
+T=zeros(n,1);
 
 % compute local matrices
 % load Gauss Legendre quadrature (GLQ is exact on polynomials of degree up to 2n-1,
@@ -168,7 +170,7 @@ for iel=1:nel
     x=(x1+x0)/2+xq*(x1-x0)/2;
     my_zone=npar.iel2zon(iel);
     d=dat.k{my_zone}(x);
-    q=dat.esrc{my_zone}(x,time);
+    q=dat.esrc{my_zone}(x,end_time);
     % compute local matrices + load vector
     for i=1:porder+1
         for j=1:porder+1
@@ -218,7 +220,6 @@ end
 
 % solve
 T=A\rhs;
-
 
 return
 end
@@ -297,21 +298,20 @@ return
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function plot_solution(dat,npar,F)
+function plot_solution(dat,npar,T)
 % plot solution for different time points            
 
 figure(1); hold all;
 
-nummax=npar.nt;
-increment=round(nummax/dat.curve);
-hold on;
+nummax=npar.n_time_steps+1;
+increment=round(nummax/npar.curve);
 color=1;
-time=0;
-for num=increment:increment:nummax
-	time=dat.deltat*num; 
+end_time=0;
+for num=1:npar.curve
+	end_time=end_time+increment*npar.delta_t;
 	c=val_color(color);
-	plot(npar.x,F(:,num),c);
-	name(color)=cellstr(strcat('time=',num2str(time)));
+	plot(npar.x,T(:,num),c);
+	name(color)=cellstr(strcat('time=',num2str(end_time)));
 	legend_graph(color,:)=name(color);
 	color=color+1;
 	legend(legend_graph);
