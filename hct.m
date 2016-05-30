@@ -1,9 +1,7 @@
 function F=hct
 % Solves the time-dependent heat conduction equation in 1-D slab geometry 
 % using CFEM without T gap.
-% An arbitrary number of material zones can be used but the analytical
-% solution assumes 3 zones are used. The conductivities and the volumetric
-% sources can be spatially dependent.
+% The conductivities and the volumetric sources can be spatially dependent.
 
 % clear the console screen
 clc; clear all; close all;
@@ -35,7 +33,7 @@ npar.delta_t=dat.duration/npar.n_time_steps;
 % number of the curves to plot, max 14 curves
 npar.curve=10; 
 
-nel_zone = [ 10 100 20];
+nel_zone = [ 10 100 10];
 
 % load the numerical parameters, npar, structure pertaining to numerics
 % number of elements
@@ -122,7 +120,6 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function T=assemble_solve(dat,npar,time,T_old)
-
 % assemble the matrix, the rhs, apply BC and solve
 
 % shortcuts
