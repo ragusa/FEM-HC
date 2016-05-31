@@ -1,6 +1,12 @@
-function F=driver
+function F=hc2pl
+% Solves the heat conduction equation in 1-D r-geometry using CFEM
+% without T gap.
+% An arbitrary number of material zones can be used but the analytical
+% solution assumes 3 zones are used. The conductivities and the volumetric
+% sources can be spatially dependent.
+
 % clear the console screen
-clc; clear all; close all;clf
+clc; clear all; close all;
 % load the data structure with info pertaining to the physical problem
 dat.k{1}=@k_Zr;
 dat.k{2}=@k_fuel;
@@ -9,19 +15,25 @@ dat.esrc{1}=@zero_function;
 dat.esrc{2}=@esrc;
 dat.esrc{3}=@zero_function;
 
-dat.hcv=20000;
-dat.width=[0.003175 0.034823 0.036];
+dat.hcv=25740;
+dat.width=[0.003175 0.0174115 0.0179195];
 bc.rite.type=1;
-bc.rite.C=400;
+bc.rite.C=50;
 dat.bc=bc; clear bc;
 
 gap_zone_ID=2;
-nel_zone = [ 10 100 5];
+nel_zone = [ 20 100 5];
 
 % load the numerical parameters, npar, structure pertaining to numerics
 % number of elements
 if length(dat.width)~=length(nel_zone)
     error('not the same number of zones in dat.width and nel_zone');
+end
+if length(dat.k)~=length(nel_zone)
+    error('not the same number of zones in dat.k and nel_zone');
+end
+if length(dat.esrc)~=length(nel_zone)
+    error('not the same number of zones in dat.esrc and nel_zone');
 end
 npar.nel = sum(nel_zone);
 
