@@ -13,17 +13,17 @@ dat.esrc{1}=@zero_functiont;
 dat.esrc{2}=@esrct;
 dat.esrc{3}=@zero_functiont;
 
-dat.hcv=20000;
+dat.hcv=1612.414;
 dat.hgap=15764; % W/(m^2.C)
-dat.rho=10412; % kg/m3;
-dat.cp=340;   % J/kg/C;
+dat.rho=7010.9; % kg/m3;
+dat.cp=310;   % J/kg/C;
 dat.width=[0.003175 0.0174115 0.0179195];
 dat.duration=10000; % in sec
 dat.Tinit=30;
-bc.left.type=0; %0=neumann, 1=robin, 2=dirichlet
+bc.left.type=0; % 0=neumann, 1=robin, 2=dirichlet
 bc.left.C=0; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
 bc.rite.type=2;
-bc.rite.C=dat.Tinit;
+bc.rite.C=200;
 dat.bc=bc; clear bc;
 
 % number of time points

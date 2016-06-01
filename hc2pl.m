@@ -15,10 +15,10 @@ dat.esrc{1}=@zero_function;
 dat.esrc{2}=@esrc;
 dat.esrc{3}=@zero_function;
 
-dat.hcv=25740;
+dat.hcv=1612.414;
 dat.width=[0.003175 0.0174115 0.0179195];
-bc.rite.type=1;
-bc.rite.C=50;
+bc.rite.type=2; % 0=neumann, 1=robin, 2=dirichlet
+bc.rite.C=200; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
 dat.bc=bc; clear bc;
 
 gap_zone_ID=2;
