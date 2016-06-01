@@ -17,8 +17,8 @@ dat.esrc{3}=@zero_function;
 
 dat.hcv=1612.414;
 dat.width=[0.003175 0.0174115 0.0179195];
-bc.rite.type=2; % 0=neumann, 1=robin, 2=dirichlet
-bc.rite.C=200; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
+bc.rite.type=1; % 0=neumann, 1=robin, 2=dirichlet
+bc.rite.C=50; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
 dat.bc=bc; clear bc;
 
 gap_zone_ID=2;
@@ -176,8 +176,8 @@ switch dat.bc.rite.type
     case 0 % Neumann, int_bd_domain (b D grad u n) is on the RHS
         rhs(n)=rhs(n)+dat.bc.rite.C;
     case 1 % Robin
-        A(n,n)=A(n,n)+dat.hcv*L(2);
-        rhs(n)=rhs(n)+dat.hcv*dat.bc.rite.C*L(2);
+        A(n,n)=A(n,n)+dat.hcv*L(3);
+        rhs(n)=rhs(n)+dat.hcv*dat.bc.rite.C*L(3);
     case 2 % Dirichlet
         Dirichlet_nodes=[Dirichlet_nodes n];
         Dirichlet_val=[Dirichlet_val dat.bc.rite.C];

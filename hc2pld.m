@@ -237,8 +237,8 @@ switch dat.bc.rite.type
     case 0 % Neumann, int_bd_domain (b D grad u n) is on the RHS
         rhs(n)=rhs(n)+dat.bc.rite.C;
     case 1 % Robin
-        A(n,n)=A(n,n)+L(2)*dat.hcv;
-        rhs(n)=rhs(n)+L(2)*dat.hcv*dat.bc.rite.C;
+        A(n,n)=A(n,n)+L(3)*dat.hcv;
+        rhs(n)=rhs(n)+L(3)*dat.hcv*dat.bc.rite.C;
     case 2 % Dirichlet
         plus_one =2;
         A(gn(end,:),gn(end,:))=A(gn(end,:),gn(end,:))...
