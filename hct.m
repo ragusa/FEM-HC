@@ -6,17 +6,21 @@ function F=hct
 % clear the console screen
 clc; clear all; close all;
 % load the data structure with info pertaining to the physical problem
-dat.k{1}=@k_Zr;
+dat.k{1}=@k_Zr; % W/m-K
 dat.k{2}=@k_fuel;
 dat.k{3}=@k_clad;
 dat.esrc{1}=@zero_functiont;
-dat.esrc{2}=@esrct;
+dat.esrc{2}=@esrct; % W/m3
 dat.esrc{3}=@zero_functiont;
+dat.rho{1}=@rho_Zr; % kg/m3
+dat.rho{2}=@rho_fuel;
+dat.rho{3}=@rho_clad;
+dat.cp{1}=@cp_Zr; % J/kg-K
+dat.cp{2}=@cp_fuel;
+dat.cp{3}=@cp_clad;
 
 dat.hcv=1612.414;
 dat.hgap=15764; % W/(m^2.C)
-dat.rho=7010.9; % kg/m3;
-dat.cp=310;   % J/kg/C;
 dat.width=[0.003175 0.0174115 0.0179195];
 dat.duration=10000; % in sec
 dat.Tinit=30;
@@ -127,8 +131,6 @@ porder= npar.porder;
 gn    = npar.gn;
 nel   = npar.nel;
 delta_t=npar.delta_t;
-rho   = dat.rho;
-cp    = dat.cp;
 
 % ideally, we would analyze the connectivity to determine nnz
 nnz=(porder+3)*nel; %this is an upperbound, not exact
@@ -169,6 +171,8 @@ for iel=1:nel
     my_zone=npar.iel2zon(iel);
     d=dat.k{my_zone}(x);
     q=dat.esrc{my_zone}(x,time);
+    rho=dat.rho{my_zone}(x);
+    cp=dat.cp{my_zone}(x);
     % compute local matrices + load vector
     for i=1:porder+1
         for j=1:porder+1
