@@ -24,8 +24,8 @@ dat.hgap=15764; % W/(m^2.C)
 dat.width=[0.003175 0.0174115 0.0179195];
 dat.duration=10000; % in sec
 dat.Tinit=30;
-bc.rite.type=2;
-bc.rite.C=200;
+bc.rite.type=1;
+bc.rite.C=50;
 dat.bc=bc; clear bc;
 
 % number of time points
@@ -192,8 +192,8 @@ switch dat.bc.rite.type
     case 0 % Neumann, int_bd_domain (b D grad u n) is on the RHS
         rhs(n)=rhs(n)+dat.bc.rite.C;
     case 1 % Robin
-        A(n,n)=A(n,n)+dat.hcv*L(2);
-        rhs(n)=rhs(n)+dat.hcv*dat.bc.rite.C*L(2);
+        A(n,n)=A(n,n)+dat.hcv*L(3);
+        rhs(n)=rhs(n)+dat.hcv*dat.bc.rite.C*L(3);
     case 2 % Dirichlet
         Dirichlet_nodes=[Dirichlet_nodes n];
         Dirichlet_val=[Dirichlet_val dat.bc.rite.C];
