@@ -15,11 +15,10 @@ dat.esrc{1}=@zero_function;
 dat.esrc{2}=@esrc;
 dat.esrc{3}=@zero_function;
 
-dat.hcv=20000;
-dat.width=[0.003175 0.034823 0.036];
-% dat.width=[1000 50000 51000];
-bc.rite.type=1;
-bc.rite.C=400;
+dat.hcv=1612.414;
+dat.width=[0.003175 0.0174115 0.0179195];
+bc.rite.type=2;
+bc.rite.C=200;
 dat.bc=bc; clear bc;
 
 nel_zone = [ 10 100 5];
