@@ -1,4 +1,5 @@
-function F=driver
+function F=fem3
+% clean heat conduction fem code with analytical solution
 
 % clear the console screen
 clc; close all;clf

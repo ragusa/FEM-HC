@@ -85,10 +85,10 @@ y2=-src{2}(r2)/(4*k{2}(r2))*(r2.^2)+a(2)*log(r2)+a(3);
 y3=a(4)*log(r3)+a(5);
 
 plot(npar.x,F,'.-',r1,y1,'r-',r2,y2,'r-',r3,y3,'r-'); hold all;
-title('1D heat conduction problem, 3 zones, without T gap, cylindrical coordinates')
+title('1D heat conduction problem, without T gap, cylindrical coordinates')
 legend('FEM','Analytical','Location','northoutside','Orientation','horizontal')
-xlabel('Width')
-ylabel('Temperature')
+xlabel('Width (m)')
+ylabel('Temperature (C)')
 
 return
 end

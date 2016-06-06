@@ -24,8 +24,8 @@ dat.hgap=15764; % W/(m^2.C)
 dat.width=[0.003175 0.0174115 0.0179195];
 dat.duration=10000; % in sec
 dat.Tinit=30;
-bc.rite.type=1;
-bc.rite.C=50;
+bc.rite.type=2; % 0=neumann, 1=robin, 2=dirichlet
+bc.rite.C=200; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
 dat.bc=bc; clear bc;
 
 % number of time points
@@ -35,7 +35,7 @@ npar.delta_t=dat.duration/npar.n_time_steps;
 % number of the curves to plot, max 14 curves
 npar.curve=10; 
 
-nel_zone = [ 10 100 10];
+nel_zone = [ 10 100 5];
 
 % load the numerical parameters, npar, structure pertaining to numerics
 % number of elements
@@ -176,7 +176,7 @@ for iel=1:nel
     % compute local matrices + load vector
     for i=1:porder+1
         for j=1:porder+1
-            m(i,j)= dot(rho.*cp.*wq.*b(:,i), b(:,j));
+            m(i,j)= dot((Mival.*rho.*cp.*wq.*b(:,i)+Jac.*xq.*rho.*cp.*wq.*b(:,i)), b(:,j));
             k(i,j)= dot((Mival.*d.*wq.*dbdx(:,i)+Jac.*xq.*d.*wq.*dbdx(:,i)), dbdx(:,j));
         end
         f(i)= dot((Mival.*q.*wq+Jac.*xq.*q.*wq), b(:,i));
@@ -307,9 +307,9 @@ for num=1:npar.curve
 	legend(legend_graph);
 end
 
-title('1D time-dependent heat conduction problem, 3 zones, without T gap, cylindrical coordinates')
-xlabel('Width')
-ylabel('Temperature')
+title('1D time-dependent heat conduction problem, without T gap, cylindrical coordinates')
+xlabel('Width (m)')
+ylabel('Temperature (C)')
 grid on
 
 return

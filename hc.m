@@ -1,5 +1,5 @@
 function F=hc
-% Solves the heat conduction equation in 1-D slab geometry using CFEM
+% Solves the heat conduction equation in 1-D x-geometry using CFEM
 % without T gap.
 % An arbitrary number of material zones can be used but the analytical
 % solution assumes 3 zones are used. The conductivities and the volumetric
@@ -19,8 +19,8 @@ dat.hcv=1612.414;
 dat.width=[0.003175 0.0174115 0.0179195];
 bc.left.type=0; %0=neumann, 1=robin, 2=dirichlet
 bc.left.C=0; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
-bc.rite.type=2;
-bc.rite.C=200;
+bc.rite.type=1;
+bc.rite.C=50;
 dat.bc=bc; clear bc;
 
 nel_zone = [ 20 100 5];
@@ -86,9 +86,9 @@ y2=-src{2}(x2)/(2*k{2}(x2))*(x2.^2)+a(3)*x2+a(4);
 y3=a(5)*x3+a(6);
 
 plot(npar.x,F,'.-',x1,y1,'r-',x2,y2,'r-',x3,y3,'r-'); hold all;
-title('1D heat conduction problem, 3 zones, without T gap, Cartesian coordinates')
-xlabel('Width')
-ylabel('Temperature')
+title('1D heat conduction problem, without T gap, Cartesian coordinates')
+xlabel('Width (m)')
+ylabel('Temperature (C)')
 legend('FEM','Analytical','Location','northoutside','Orientation','horizontal')
 
 return
