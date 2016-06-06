@@ -1,34 +1,53 @@
-function F=hcgap
-% Solves the time-dependent heat conduction equation in 1-D x-geometry 
+function F=hcgap2pl
+% Solves the time-dependent heat conduction equation in 1-D r-geometry
 % using CFEM with T gap.
 % The conductivities and the volumetric sources can be spatially dependent.
 
 % clear the console screen
 clc; clear all; close all;
 % load the data structure with info pertaining to the physical problem
-dat.k{1}=@k_Zr;
+dat.k{1}=@k_Zr; % W/m-K
 dat.k{2}=@k_fuel;
 dat.k{3}=@k_clad;
-dat.esrc{1}=@zero_function;
-dat.esrc{2}=@esrc;
-dat.esrc{3}=@zero_function;
+dat.esrc{1}=@zero_functiont;
+dat.esrc{2}=@esrct; % W/m3
+dat.esrc{3}=@zero_functiont;
+dat.rho{1}=@rho_Zr; % kg/m3
+dat.rho{2}=@rho_fuel;
+dat.rho{3}=@rho_clad;
+dat.cp{1}=@cp_Zr; % J/kg-K
+dat.cp{2}=@cp_fuel;
+dat.cp{3}=@cp_clad;
 
-dat.hgap=15764;
 dat.hcv=1612.414;
+dat.hgap=15764; % W/(m^2.C)
 dat.width=[0.003175 0.0174115 0.0179195];
-bc.left.type=0; %0=neumann, 1=robin, 2=dirichlet
-bc.left.C=0; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
-bc.rite.type=1;
-bc.rite.C=50;
+dat.duration=10000; % in sec
+dat.Tinit=30;
+bc.rite.type=2; % 0=neumann, 1=robin, 2=dirichlet
+bc.rite.C=200; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
 dat.bc=bc; clear bc;
 
+% number of time points
+npar.n_time_steps=100; % total number of time steps to run
+npar.delta_t=dat.duration/npar.n_time_steps;
+
+% number of the curves to plot, max 14 curves
+npar.curve=10; 
+
 gap_zone_ID=2;
-nel_zone = [ 1 10 2];
+nel_zone = [ 10 100 5];
 
 % load the numerical parameters, npar, structure pertaining to numerics
 % number of elements
 if length(dat.width)~=length(nel_zone)
     error('not the same number of zones in dat.width and nel_zone');
+end
+if length(dat.k)~=length(nel_zone)
+    error('not the same number of zones in dat.k and nel_zone');
+end
+if length(dat.esrc)~=length(nel_zone)
+    error('not the same number of zones in dat.esrc and nel_zone');
 end
 npar.nel = sum(nel_zone);
 npar.nelgap = sum(nel_zone(1:gap_zone_ID));
@@ -66,54 +85,48 @@ gn(npar.nelgap+1:end,1:2)=gn(npar.nelgap+1:end,1:2)+1;
 npar.gn=gn; clear gn;
 
 % solve system
-F = solve_fem3(dat,npar);
+T = time_solve(dat,npar);
 % plot
-figure(1)
-
-npar.xf=[npar.x(1:npar.nelgap+1) npar.x(npar.nelgap+1:end)] ;
-
-% verification is always good
-a=verif_hc_eq(dat);
-
-% get coefficient for the analytical solution
-k=dat.k; src=dat.esrc; L=dat.width;
-x1=linspace(0,L(1));
-x2=linspace(L(1),L(2));
-x3=linspace(L(2),L(3));
-y1=a(1)*x1+a(2);
-y2=-src{2}(x2)/(2*k{2}(x2))*(x2.^2)+a(3)*x2+a(4);
-y3=a(5)*x3+a(6);
-
-plot(npar.xf,F,'.-',x1,y1,'r-',x2,y2,'r-',x3,y3,'r-'); hold all;
-title('1D heat conduction problem, with T gap, Cartesian coordinates')
-xlabel('Width (m)')
-ylabel('Temperature (C)')
-legend('FEM','Analytical','Location','northoutside','Orientation','horizontal')
-
-return
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function u=solve_fem3(dat, npar)
-
-% initial guess
-% (not needed if a direct method is used to solve the linear system)
-u=ones(npar.ndofs,1);
-
-% assemble the matrix and the rhs
-[A,b]=assemble_system(npar,dat);
-
-% solve
-u=A\b;
+plot_solution(dat,npar,T)
 
 return
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [A,rhs]=assemble_system(npar,dat)
+function T=time_solve(dat,npar)
 
-% assemble the matrix, the rhs, apply BC
+% shortcuts
+nel   = npar.nel;
+porder= npar.porder;
+n_time_steps=npar.n_time_steps;
+delta_t=npar.delta_t;
+curve=npar.curve;
+
+n=nel*porder+2;
+
+% initial condition
+T=zeros(n,curve);
+T_old=dat.Tinit*ones(n,1);
+
+nummax=n_time_steps+1;
+increment=round(nummax/curve);
+
+% loop over time
+end_time=0;
+for it=1:curve
+    end_time=end_time+increment*delta_t;
+    % solve the FME system for a given time step
+    T_old=assemble_solve(dat,npar,end_time,T_old);
+    % save solutions at different time points
+    T(:,it)=T_old;
+end
+
+return
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function T=assemble_solve(dat,npar,time,T_old)
+% assemble the matrix, the rhs, apply BC and solve
 
 % shortcuts
 porder= npar.porder;
@@ -121,6 +134,9 @@ gn    = npar.gn;
 nel   = npar.nel;
 g1 = npar.nelgap+1;
 g2 = npar.nelgap+2;
+delta_t=npar.delta_t;
+L = dat.width;
+
 % ideally, we would analyze the connectivity to determine nnz
 nnz=(porder+3)*nel; %this is an upperbound, not exact
 % n: linear system size
@@ -128,6 +144,7 @@ n=nel*porder+2;
 % allocate memory
 A=spalloc(n,n,nnz);
 rhs=zeros(n,1);
+T=zeros(n,1);
 
 % compute local matrices
 % load Gauss Legendre quadrature (GLQ is exact on polynomials of degree up to 2n-1,
@@ -148,56 +165,46 @@ f=zeros(porder+1,1);
 %      = int_domain (b rhs)
 
 % loop over elements
-for iel=1:npar.nel
+for iel=1:nel
     % element extremities
     x0=npar.x(iel);
     x1=npar.x(iel+1);
     % jacobian of the transformation to the ref. element
     Jac=(x1-x0)/2;
+    Mival=(x1+x0)/2;
     % get x values in the interval
     x=(x1+x0)/2+xq*(x1-x0)/2;
     my_zone=npar.iel2zon(iel);
     d=dat.k{my_zone}(x);
-    q=dat.esrc{my_zone}(x);
+    q=dat.esrc{my_zone}(x,time);
+    rho=dat.rho{my_zone}(x);
+    cp=dat.cp{my_zone}(x);
     % compute local matrices + load vector
     for i=1:porder+1
         for j=1:porder+1
-            % m(i,j)= dot(0.*wq.*b(:,i)    , b(:,j));
-            k(i,j)= dot(d.*wq.*dbdx(:,i) , dbdx(:,j));
+            m(i,j)= dot((Mival.*rho.*cp.*wq.*b(:,i)+Jac.*xq.*rho.*cp.*wq.*b(:,i)), b(:,j));
+            k(i,j)= dot((Mival.*d.*wq.*dbdx(:,i)+Jac.*xq.*d.*wq.*dbdx(:,i)), dbdx(:,j));
         end
-        f(i)= dot(q.*wq, b(:,i));
+        f(i)= dot((Mival.*q.*wq+Jac.*xq.*q.*wq), b(:,i));
     end
-    % assemble
-    % A(gn(iel,:),gn(iel,:)) = A(gn(iel,:),gn(iel,:)) + ...
-    %    m*Jac + k/Jac;
-    A(gn(iel,:),gn(iel,:)) = A(gn(iel,:),gn(iel,:)) + k/Jac;
-    rhs(gn(iel,:)) = rhs(gn(iel,:)) + f*Jac;
+    A(gn(iel,:),gn(iel,:)) = A(gn(iel,:),gn(iel,:)) + m*Jac + delta_t*k/Jac;
+    rhs(gn(iel,:)) = rhs(gn(iel,:)) + m*Jac*T_old(gn(iel,:)) + delta_t*f*Jac;
 end
 
-A(g1,g1)=A(g1,g1)+dat.hgap/2;
-A(g1,g2)=A(g1,g2)-dat.hgap/2;
-A(g2,g1)=A(g2,g1)-dat.hgap/2;
-A(g2,g2)=A(g2,g2)+dat.hgap/2;
+A(g1,g1)=A(g1,g1)+dat.hgap*L(2)/2;
+A(g1,g2)=A(g1,g2)-dat.hgap*L(2)/2;
+A(g2,g1)=A(g2,g1)-dat.hgap*L(2)/2;
+A(g2,g2)=A(g2,g2)+dat.hgap*L(2)/2;
 
 % apply natural BC
 Dirichlet_nodes=[];
 Dirichlet_val=[];
-switch dat.bc.left.type
-    case 0 % Neumann, int_bd_domain (b D grad u n) is on the RHS
-        rhs(1)=rhs(1)+dat.bc.left.C;
-    case 1 % Robin
-        A(1,1)=A(1,1)+dat.hcv;
-        rhs(1)=rhs(1)+dat.hcv*dat.bc.left.C;
-    case 2 % Dirichlet
-        Dirichlet_nodes=[Dirichlet_nodes 1];
-        Dirichlet_val=[Dirichlet_val dat.bc.left.C];
-end
 switch dat.bc.rite.type
     case 0 % Neumann, int_bd_domain (b D grad u n) is on the RHS
         rhs(n)=rhs(n)+dat.bc.rite.C;
     case 1 % Robin
-        A(n,n)=A(n,n)+dat.hcv;
-        rhs(n)=rhs(n)+dat.hcv*dat.bc.rite.C;
+        A(n,n)=A(n,n)+dat.hcv*L(3);
+        rhs(n)=rhs(n)+dat.hcv*dat.bc.rite.C*L(3);
     case 2 % Dirichlet
         Dirichlet_nodes=[Dirichlet_nodes n];
         Dirichlet_val=[Dirichlet_val dat.bc.rite.C];
@@ -212,6 +219,9 @@ for i=1:length(Dirichlet_nodes);% loop on the number of constraints
     A(id,id)=1;            % set the id-th diagonal to unity
     rhs(id)=bcval;         % put the constrained value in the rhs
 end
+
+% solve
+T=A\rhs;
 
 return
 end
@@ -290,80 +300,31 @@ return
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function a=verif_hc_eq(dat)
+function plot_solution(dat,npar,T)
+% plot solution for different time points            
 
-k=dat.k; src=dat.esrc; hgap=dat.hgap; hcv=dat.hcv; L=dat.width;
+figure(1); hold all;
 
-% general form of the solution:
-% Zone 1 : T1 = B1*x + E1
-% dT1/dx= B1
-% Zone 2 : T2 = -q/(2*k2)*(x.^2) + B2*x + E2
-% dT2/dx= -q/k2*x + B2
-% Zone 3 : T3 = B3*x + E3
-% dT3/dx= B3
-
-switch dat.bc.left.type
-    case 0 % Neumann
-        % k1*du1/dn=C on the left becomes: -k1*du1/dx=C
-        % <==> -k1*B1=C <==> B1=-C/k1
-        mat(1,1:6) =[1,0,0,0,0,0];
-        b(1) = -dat.bc.left.C / k{1}(0);
-    case 1 % Robin
-        % u1+k1/hcv*du1/dn =C on the left becomes: u1-k1/hcv*du1/dx =C
-        % <==> -k1/hcv*B1+E1=C
-        mat(1,1:6) =[-k{1}(0)/hcv,1,0,0,0,0];
-        b(1) = dat.bc.left.C;
-    case 2 % Dirichlet
-        % u1=C <==> E1=C
-        mat(1,1:6) =[0,1,0,0,0,0];
-        b(1) = dat.bc.left.C;
-end
-switch dat.bc.rite.type
-    case 0 % Neumann
-        % k3*du3/dn=C on the right becomes: k3*du3/dx=C
-        % <==> k3*B3=C <==> B3=C/k3
-        mat(6,1:6) =[0,0,0,0,1,0];
-        b(6) = dat.bc.rite.C / k{3}(L(3));
-    case 1 % Robin
-        % u3+k3/hcv*du3/dn =C on the right becomes: u3+k3/hcv*du3/dx =C
-        % <==> (L3+k3/hcv)B3+E3=C
-        mat(6,1:6) =[0,0,0,0,L(3)+k{3}(L(3))/hcv,1];
-        b(6) = dat.bc.rite.C;
-    case 2 % Dirichlet
-        % u3=C <==> B3*L3+E3=C
-        mat(6,1:6) =[0,0,0,0,L(3),1];
-        b(6) = dat.bc.rite.C;
+nummax=npar.n_time_steps+1;
+increment=round(nummax/npar.curve);
+color=1;
+end_time=0;
+npar.xf=[npar.x(1:npar.nelgap+1) npar.x(npar.nelgap+1:end)];
+for num=1:npar.curve
+	end_time=end_time+increment*npar.delta_t;
+	c=val_color(color);
+	plot(npar.xf,T(:,num),c);
+	name(color)=cellstr(strcat('time=',num2str(end_time)));
+	legend_graph(color,:)=name(color);
+	color=color+1;
+	legend(legend_graph);
 end
 
-% fixed conditions
-% continuity of T and flux between zone 1 and zone 2 (interface L1)
-% T1(L1)=T2(L1) <==> B1*L1+E1=(-q/2k2)*(L1^2)+B2*L1+E2
-% <==> B1*L1+E1-B2*L1-E2=(-q/2k2)*(L1^2)
-mat(2,1:6) =[L(1),1,-L(1),-1,0,0];
-b(2) =-src{2}(L(1))/(2*k{2}(L(1)))*L(1)*L(1);
-% phi1(L1)=phi2(L1) <==> k1*B1=k2*((-q/k2)*L1+B2)
-% <==> (k1/k2)*B1-B2=(-q/k2)*L1
-mat(3,1:6) =[k{1}(L(1))/k{2}(L(1)),0,-1,0,0,0];
-b(3) =-src{2}(L(1))/k{2}(L(1))*L(1);
-
-% discontinuity of T between zone 2 and zone 3 (interface L2)
-% T2(L2)=(-q/2k2)*(L2^2)+B2*L2+E2
-% T3(L2)=B3*L2+E3
-% Tg=(T2(L2)+T3(L2))/2
-% -k2*dT2/dx=hgap(T2(L2)-Tg)
-% <==> -k2(-q/k2*L2+B2)=hgap(T2(L2)-T3(L2))/2
-% <==> (2k2+L2*hgap)B2+hgap*E2-L2*hgap*B3-hgap*E3=hgap*q/2k2*(L2^2)+2*q*L2
-mat(4,1:6) =[0,0,2*k{2}(L(2))+L(2)*hgap,hgap,-L(2)*hgap,-hgap];
-b(4) =hgap*(src{2}(L(2))/(2*k{2}(L(2))))*L(2)*L(2)+2*src{2}(L(2))*L(2);
-% -k3*dT3/dx=hgap(Tg-T3(L2))
-% <==> -k3*B3=hgap(T2(L2)-T3(L2))/2
-% <==> L2*hgap*B2+hgap*E2+(2k3-L2*hgap)*B3-hgap*E3=hgap*q/2k2*(L2^2)
-mat(5,1:6) =[0,0,L(2)*hgap,hgap,2*k{3}(L(2))-L(2)*hgap,-hgap];
-b(5) =hgap*(src{2}(L(2))/(2*k{2}(L(2))))*L(2)*L(2);
-
-a=mat\b';
+title('1D time-dependent heat conduction problem, with T gap, cylindrical coordinates')
+xlabel('Width (m)')
+ylabel('Temperature (C)')
+grid on
 
 return
 end
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

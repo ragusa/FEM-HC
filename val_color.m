@@ -1,5 +1,5 @@
 function y=val_color(color)
-
+% choose a color for a number
 switch(color)
     case 1 
         y='r';
