@@ -1,7 +1,9 @@
-function F=driver
+function F=analy2pl
+% Solves analytically the heat conduction equation in 1-D r-geometry
+% with T gap.
 
 % clear the console screen
-clc; close all;clf
+clc; close all;
 % load the data structure with info pertaining to the physical problem
 dat.k{1}=@(r) 18;
 dat.k{2}=@(r) 16;

@@ -1,5 +1,5 @@
 function F=hct
-% Solves the time-dependent heat conduction equation in 1-D slab geometry 
+% Solves the time-dependent heat conduction equation in 1-D x-geometry 
 % using CFEM without T gap.
 % The conductivities and the volumetric sources can be spatially dependent.
 
@@ -319,9 +319,9 @@ for num=1:npar.curve
 	legend(legend_graph);
 end
 
-title('1D time-dependent heat conduction problem, 3 zones, without T gap, Cartesian coordinates')
-xlabel('Width')
-ylabel('Temperature')
+title('1D time-dependent heat conduction problem, without T gap, Cartesian coordinates')
+xlabel('Width (m)')
+ylabel('Temperature (C)')
 grid on
 
 return

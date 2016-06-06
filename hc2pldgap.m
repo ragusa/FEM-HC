@@ -1,5 +1,5 @@
 function F=hc2pldgap
-% Solves the heat conduction equation in 1-D fuel-like geometry using DFEM
+% Solves the heat conduction equation in 1-D r-geometry using DFEM
 % with T gap.
 % An arbitrary number of material zones can be used but the analytical
 % solution assumes 3 zones are used. The conductivities and the volumetric
@@ -98,14 +98,14 @@ if length(nel_zone)==3
     plot(npar.xf,F,'.-',[r1 r2 r3],[y1 y2 y3],'r-'); hold all;
     title('1D heat conduction problem, 3 zones, with T gap, cylindrical coordinates')
     legend('FEM','Analytical','Location','northoutside','Orientation','horizontal')
-    xlabel('Width')
-    ylabel('Temperature')
+    xlabel('Width (m)')
+    ylabel('Temperature (C)')
 else
     plot(npar.xf,F,'.-'); hold all;
-    title('1D heat conduction problem, 3 zones, with T gap, cylindrical coordinates')
+    title('1D heat conduction problem, n zones, with T gap, cylindrical coordinates')
     legend('FEM','Location','northoutside','Orientation','horizontal')
-    xlabel('Width')
-    ylabel('Temperature')
+    xlabel('Width (m)')
+    ylabel('Temperature (C)')
 end
 
 return
