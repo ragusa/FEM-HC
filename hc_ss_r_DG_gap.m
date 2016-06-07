@@ -1,4 +1,4 @@
-function F=hc2pldgap
+function F=hc_ss_r_DG_gap
 % Solves the heat conduction equation in 1-D r-geometry using DFEM
 % with T gap.
 % An arbitrary number of material zones can be used but the analytical
@@ -52,7 +52,6 @@ for z=1:length(nel_zone)
         x = [x x_zone(2:end)];
         iel2zon =[ iel2zon; z*ones(nel_zone(z),1)];
     end
-    
 end
 npar.x=x;
 npar.iel2zon=iel2zon;

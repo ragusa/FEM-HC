@@ -1,4 +1,4 @@
-function F=hc
+function F=hc_ss_x_CG
 % Solves the heat conduction equation in 1-D x-geometry using CFEM
 % without T gap.
 % An arbitrary number of material zones can be used but the analytical
@@ -51,12 +51,11 @@ for z=1:length(nel_zone)
         x = [x x_zone(2:end)];
         iel2zon =[ iel2zon; z*ones(nel_zone(z),1)];
     end
-    
 end
 npar.x=x;
 npar.iel2zon=iel2zon;
 % polynomial degree
-npar.porder=1;
+npar.porder=2;
 % nbr of dofs per variable
 npar.ndofs = npar.porder*npar.nel+1;
 % connectivity
@@ -73,6 +72,14 @@ F = solve_fem3(dat,npar);
 % plot
 figure(1)
 
+% create x values for plotting FEM solution
+npar.xf=zeros(npar.nel*npar.porder+1,1);
+for iel=1:npar.nel
+    ibeg = (iel-1)*npar.porder+1;
+    iend = (iel  )*npar.porder+1;
+    npar.xf(ibeg:iend)=linspace(npar.x(iel),npar.x(iel+1),npar.porder+1) ;
+end
+
 % verification is always good
 a=verif_hc_eq(dat);
 
@@ -85,7 +92,7 @@ y1=a(1)*x1+a(2);
 y2=-src{2}(x2)/(2*k{2}(x2))*(x2.^2)+a(3)*x2+a(4);
 y3=a(5)*x3+a(6);
 
-plot(npar.x,F,'.-',x1,y1,'r-',x2,y2,'r-',x3,y3,'r-'); hold all;
+plot(npar.xf,F,'.-',x1,y1,'r-',x2,y2,'r-',x3,y3,'r-'); hold all;
 title('1D heat conduction problem, without T gap, Cartesian coordinates')
 xlabel('Width (m)')
 ylabel('Temperature (C)')
