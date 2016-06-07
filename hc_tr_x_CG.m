@@ -1,4 +1,4 @@
-function F=hct
+function F=hc_tr_x_CG
 % Solves the time-dependent heat conduction equation in 1-D x-geometry 
 % using CFEM without T gap.
 % The conductivities and the volumetric sources can be spatially dependent.
@@ -22,12 +22,12 @@ dat.cp{3}=@cp_clad;
 dat.hcv=1612.414;
 dat.hgap=15764; % W/(m^2.C)
 dat.width=[0.003175 0.0174115 0.0179195];
-dat.duration=10000; % in sec
+dat.duration=1000000; % in sec
 dat.Tinit=30;
 bc.left.type=0; % 0=neumann, 1=robin, 2=dirichlet
 bc.left.C=0; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
-bc.rite.type=2;
-bc.rite.C=200;
+bc.rite.type=1;
+bc.rite.C=50;
 dat.bc=bc; clear bc;
 
 % number of time points
@@ -64,13 +64,12 @@ for z=1:length(nel_zone)
     else
         x = [x x_zone(2:end)];
         iel2zon =[ iel2zon; z*ones(nel_zone(z),1)];
-    end
-    
+    end 
 end
 npar.x=x;
 npar.iel2zon=iel2zon;
 % polynomial degree
-npar.porder=1;
+npar.porder=2;
 % nbr of dofs per variable
 npar.ndofs = npar.porder*npar.nel+1;
 % connectivity
@@ -182,8 +181,8 @@ for iel=1:nel
         f(i)= dot(q.*wq, b(:,i));
     end
     % assemble
-    A(gn(iel,:),gn(iel,:)) = A(gn(iel,:),gn(iel,:)) + m*Jac + delta_t*k/Jac;
-    rhs(gn(iel,:)) = rhs(gn(iel,:)) + m*Jac*T_old(gn(iel,:)) + delta_t*f*Jac;
+    A(gn(iel,:),gn(iel,:)) = A(gn(iel,:),gn(iel,:)) + m*Jac/delta_t + k/Jac;
+    rhs(gn(iel,:)) = rhs(gn(iel,:)) + m*Jac*T_old(gn(iel,:))/delta_t + f*Jac;
 end
 
 % apply natural BC
@@ -305,6 +304,14 @@ function plot_solution(dat,npar,T)
 
 figure(1); hold all;
 
+% create x values for plotting FEM solution
+npar.xf=zeros(npar.nel*npar.porder+1,1);
+for iel=1:npar.nel
+    ibeg = (iel-1)*npar.porder+1;
+    iend = (iel  )*npar.porder+1;
+    npar.xf(ibeg:iend)=linspace(npar.x(iel),npar.x(iel+1),npar.porder+1) ;
+end
+
 nummax=npar.n_time_steps+1;
 increment=round(nummax/npar.curve);
 color=1;
@@ -312,7 +319,7 @@ end_time=0;
 for num=1:npar.curve
 	end_time=end_time+increment*npar.delta_t;
 	c=val_color(color);
-	plot(npar.x,T(:,num),c);
+	plot(npar.xf,T(:,num),c);
 	name(color)=cellstr(strcat('time=',num2str(end_time)));
 	legend_graph(color,:)=name(color);
 	color=color+1;

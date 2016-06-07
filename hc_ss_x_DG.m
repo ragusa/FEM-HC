@@ -1,4 +1,4 @@
-function F=hcd
+function F=hc_ss_x_DG
 % Solves the heat conduction equation in 1-D x-geometry using DFEM
 % without T gap.
 % An arbitrary number of material zones can be used but the analytical
@@ -23,7 +23,7 @@ bc.rite.type=2;
 bc.rite.C=200;
 dat.bc=bc; clear bc;
 
-nel_zone = [ 1 2 1];
+nel_zone = [ 2 5 1];
 
 % load the numerical parameters, npar, structure pertaining to numerics
 % number of elements
@@ -51,7 +51,6 @@ for z=1:length(nel_zone)
         x = [x x_zone(2:end)];
         iel2zon =[ iel2zon; z*ones(nel_zone(z),1)];
     end
-    
 end
 npar.x=x;
 npar.iel2zon=iel2zon;
