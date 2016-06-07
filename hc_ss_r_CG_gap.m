@@ -65,7 +65,7 @@ for iel=2:npar.nel
     gn(iel,:)=[gn(iel-1,end) , gn(iel-1,2:end)+npar.porder ];
 end
 % adding the gap unknowns
-gn(npar.nelgap+1:end,1:2)=gn(npar.nelgap+1:end,1:2)+1;
+gn(npar.nelgap+1:end,1:end)=gn(npar.nelgap+1:end,1:end)+1;
 npar.gn=gn; clear gn;
 
 % solve system

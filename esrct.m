@@ -5,4 +5,5 @@ function y=esrct(x,t)
 % With ICONE document, we transform the heat flux value to the power
 % density value, see source excel document : 2.84188e7 W/m3
 y=3.1674e7*min(1,t/10);
+% y=3.1674e7*1.41966*min(1,t/10); % for comparison with Chance's thesis
 end
