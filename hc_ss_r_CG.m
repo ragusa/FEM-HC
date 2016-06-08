@@ -22,7 +22,7 @@ bc.rite.C=50; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
 dat.bc=bc; clear bc;
 
 gap_zone_ID=2;
-nel_zone = [ 2 10 2];
+nel_zone = [ 6 15 2];
 
 % load the numerical parameters, npar, structure pertaining to numerics
 % number of elements
@@ -92,10 +92,10 @@ y2=-src{2}(r2)/(4*k{2}(r2))*(r2.^2)+a(2)*log(r2)+a(3);
 y3=a(4)*log(r3)+a(5);
 
 plot(npar.xf,F,'.-',r1,y1,'r-',r2,y2,'r-',r3,y3,'r-'); hold all;
-title('1D heat conduction problem, without T gap, cylindrical coordinates')
+title('1D steady-state heat conduction, without T gap, cylindrical coordinates')
 legend('FEM','Analytical','Location','northoutside','Orientation','horizontal')
 xlabel('Width (m)')
-ylabel('Temperature (C)')
+ylabel('Temperature (°C)')
 
 return
 end
