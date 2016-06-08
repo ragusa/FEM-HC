@@ -93,16 +93,15 @@ b(3) =Y1*L(1);
 % discontinuity of T between zone 2 and zone 3 (interface L2)
 % T2(L2)=Y2*(L2^2)+B2*L2+E2
 % T3(L2)=B3*L2+E3
-% Tg=(T2(L2)+T3(L2))/2
-% -k2*dT2/dx=hgap(T2(L2)-Tg)
-% <==> -k2(-q/k2*L2+B2)=hgap(T2(L2)-T3(L2))/2
-% <==> (2k2+L2*hgap)B2+hgap*E2-L2*hgap*B3-hgap*E3=-hgap*Y2*(L2^2)+2*q*L2
-mat(4,1:6) =[0,0,2*k2(0)+L(2)*hgap,hgap,-L(2)*hgap,-hgap];
-b(4) =-hgap*Y2*L(2)*L(2)+2*src*L(2);
-% -k3*dT3/dx=hgap(Tg-T3(L2))
-% <==> -k3*B3=hgap(T2(L2)-T3(L2))/2
-% <==> L2*hgap*B2+hgap*E2+(2k3-L2*hgap)*B3-hgap*E3=-hgap*Y2*(L2^2)
-mat(5,1:6) =[0,0,L(2)*hgap,hgap,2*k3(0)-L(2)*hgap,-hgap];
+% -k2*dT2/dx=hgap(T2(L2)-T3(L2))
+% <==> -k2(-q/k2*L2+B2)=hgap(T2(L2)-T3(L2))
+% <==> (k2+L2*hgap)B2+hgap*E2-L2*hgap*B3-hgap*E3=-hgap*Y2*(L2^2)+q*L2
+mat(4,1:6) =[0,0,k2(0)+L(2)*hgap,hgap,-L(2)*hgap,-hgap];
+b(4) =-hgap*Y2*L(2)*L(2)+src*L(2);
+% -k3*dT3/dx=hgap(T2(L2)-T3(L2))
+% <==> -k3*B3=hgap(T2(L2)-T3(L2))
+% <==> L2*hgap*B2+hgap*E2+(k3-L2*hgap)*B3-hgap*E3=-hgap*Y2*(L2^2)
+mat(5,1:6) =[0,0,L(2)*hgap,hgap,k3(0)-L(2)*hgap,-hgap];
 b(5) =-hgap*Y2*L(2)*L(2);
 
 % get coefficient for the analytical solution

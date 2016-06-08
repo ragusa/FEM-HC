@@ -67,16 +67,15 @@ b(2) =src{2}(L(1))/(2*k{2}(L(1)))*L(1)*L(1);
 % discontinuity of T between zone 2 and zone 3 (interface L2)
 % T2(L2)=(-q/4k2)*(L2^2)+B2*ln(L2)+E2
 % T3(L2)=B3*ln(L2)+E3
-% Tg=(T2(L2)+T3(L2))/2
-% -k2*dT2/dr=hgap(T2(L2)-Tg)
-% <==> -k2(-q/2k2*L2+B2/L2)=hgap(T2(L2)-T3(L2))/2
-% <==> (2k2/(hgap*L2)+ln(L2))*B2+E2-ln(L2)*B3-E3=q/4k2*(L2^2)+q*L2/hgap
-mat(3,1:5) =[0,2*k{2}(L(2))/(hgap*L(2))+log(L(2)),1,-log(L(2)),-1];
-b(3) =(src{2}(L(2))/(4*k{2}(L(2))))*L(2)*L(2)+src{2}(L(2))*L(2)/hgap;
-% -k3*dT3/dr=hgap(Tg-T3(L2))
-% <==> -k3*B3/L2=hgap(T2(L2)-T3(L2))/2
-% <==> ln(L2)*B2+E2+(2k3/(L2*hgap)-ln(L2))*B3-E3=q/4k2*(L2^2)
-mat(4,1:5) =[0,log(L(2)),1,2*k{3}(L(2))/(L(2)*hgap)-log(L(2)),-1];
+% -k2*dT2/dr=hgap(T2(L2)-T3(L2))
+% <==> -k2(-q/2k2*L2+B2/L2)=hgap(T2(L2)-T3(L2))
+% <==> (k2/(hgap*L2)+ln(L2))*B2+E2-ln(L2)*B3-E3=q/4k2*(L2^2)+q*L2/(2*hgap)
+mat(3,1:5) =[0,k{2}(L(2))/(hgap*L(2))+log(L(2)),1,-log(L(2)),-1];
+b(3) =(src{2}(L(2))/(4*k{2}(L(2))))*L(2)*L(2)+src{2}(L(2))*L(2)/(2*hgap);
+% -k3*dT3/dr=hgap(T2(L2)-T3(L2))
+% <==> -k3*B3/L2=hgap(T2(L2)-T3(L2))
+% <==> ln(L2)*B2+E2+(k3/(L2*hgap)-ln(L2))*B3-E3=q/4k2*(L2^2)
+mat(4,1:5) =[0,log(L(2)),1,k{3}(L(2))/(L(2)*hgap)-log(L(2)),-1];
 b(4) =(src{2}(L(2))/(4*k{2}(L(2))))*L(2)*L(2);
 
 % get coefficient for the analytical solution
