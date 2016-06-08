@@ -20,8 +20,8 @@ dat.hcv=1612.414;
 dat.width=[0.003175 0.0174115 0.0179195];
 bc.left.type=0; %0=neumann, 1=robin, 2=dirichlet
 bc.left.C=0; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
-bc.rite.type=2;
-bc.rite.C=200;
+bc.rite.type=1;
+bc.rite.C=50;
 dat.bc=bc; clear bc;
 
 gap_zone_ID=2;
@@ -97,15 +97,15 @@ if length(nel_zone)==3
     y3=a(5)*x3+a(6);
 
     plot(npar.xf,F,'.-',[x1 x2 x3],[y1 y2 y3],'r-'); hold all;
-    title('1D heat conduction problem, 3 zones, with T gap, Cartesian coordinates')
+    title('1D steady-state heat conduction, 3 zones, with T gap, Cartesian coordinates')
     xlabel('Width (m)')
-    ylabel('Temperature (C)')
+    ylabel('Temperature (°C)')
     legend('FEM','Analytical','Location','northoutside','Orientation','horizontal')
 else
     plot(npar.xf,F,'.-'); hold all;
-    title('1D heat conduction problem, n zones, with T gap, Cartesian coordinates')
+    title('1D steady-state heat conduction, n zones, with T gap, Cartesian coordinates')
     xlabel('Width (m)')
-    ylabel('Temperature (C)')
+    ylabel('Temperature (°C)')
     legend('FEM','Location','northoutside','Orientation','horizontal')
 end
 
@@ -230,10 +230,10 @@ for ie=xg
     A(gn(iele,1),gn(iele,1))     = A(gn(iele,1),gn(iele,1))    +kap;
 end
 
-A(g1,g1)=A(g1,g1)+dat.hgap/2;
-A(g1,g2)=A(g1,g2)-dat.hgap/2;
-A(g2,g1)=A(g2,g1)-dat.hgap/2;
-A(g2,g2)=A(g2,g2)+dat.hgap/2;
+A(g1,g1)=A(g1,g1)+dat.hgap;
+A(g1,g2)=A(g1,g2)-dat.hgap;
+A(g2,g1)=A(g2,g1)-dat.hgap;
+A(g2,g2)=A(g2,g2)+dat.hgap;
 
 % apply natural BC
 % element extremities
@@ -417,16 +417,15 @@ b(3) =-src{2}(L(1))/k{2}(L(1))*L(1);
 % discontinuity of T between zone 2 and zone 3 (interface L2)
 % T2(L2)=(-q/2k2)*(L2^2)+B2*L2+E2
 % T3(L2)=B3*L2+E3
-% Tg=(T2(L2)+T3(L2))/2
-% -k2*dT2/dx=hgap(T2(L2)-Tg)
-% <==> -k2(-q/k2*L2+B2)=hgap(T2(L2)-T3(L2))/2
-% <==> (2k2+L2*hgap)B2+hgap*E2-L2*hgap*B3-hgap*E3=hgap*q/2k2*(L2^2)+2*q*L2
-mat(4,1:6) =[0,0,2*k{2}(L(2))+L(2)*hgap,hgap,-L(2)*hgap,-hgap];
-b(4) =hgap*(src{2}(L(2))/(2*k{2}(L(2))))*L(2)*L(2)+2*src{2}(L(2))*L(2);
-% -k3*dT3/dx=hgap(Tg-T3(L2))
-% <==> -k3*B3=hgap(T2(L2)-T3(L2))/2
-% <==> L2*hgap*B2+hgap*E2+(2k3-L2*hgap)*B3-hgap*E3=hgap*q/2k2*(L2^2)
-mat(5,1:6) =[0,0,L(2)*hgap,hgap,2*k{3}(L(2))-L(2)*hgap,-hgap];
+% -k2*dT2/dx=hgap(T2(L2)-T3(L2))
+% <==> -k2(-q/k2*L2+B2)=hgap(T2(L2)-T3(L2))
+% <==> (k2+L2*hgap)B2+hgap*E2-L2*hgap*B3-hgap*E3=hgap*q/2k2*(L2^2)+q*L2
+mat(4,1:6) =[0,0,k{2}(L(2))+L(2)*hgap,hgap,-L(2)*hgap,-hgap];
+b(4) =hgap*(src{2}(L(2))/(2*k{2}(L(2))))*L(2)*L(2)+src{2}(L(2))*L(2);
+% -k3*dT3/dx=hgap(T2(L2)-T3(L2))
+% <==> -k3*B3=hgap(T2(L2)-T3(L2))
+% <==> L2*hgap*B2+hgap*E2+(k3-L2*hgap)*B3-hgap*E3=hgap*q/2k2*(L2^2)
+mat(5,1:6) =[0,0,L(2)*hgap,hgap,k{3}(L(2))-L(2)*hgap,-hgap];
 b(5) =hgap*(src{2}(L(2))/(2*k{2}(L(2))))*L(2)*L(2);
 
 a=mat\b';

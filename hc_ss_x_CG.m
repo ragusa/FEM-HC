@@ -93,9 +93,9 @@ y2=-src{2}(x2)/(2*k{2}(x2))*(x2.^2)+a(3)*x2+a(4);
 y3=a(5)*x3+a(6);
 
 plot(npar.xf,F,'.-',x1,y1,'r-',x2,y2,'r-',x3,y3,'r-'); hold all;
-title('1D heat conduction problem, without T gap, Cartesian coordinates')
+title('1D steady-state heat conduction, without T gap, Cartesian coordinates')
 xlabel('Width (m)')
-ylabel('Temperature (C)')
+ylabel('Temperature (°C)')
 legend('FEM','Analytical','Location','northoutside','Orientation','horizontal')
 
 return

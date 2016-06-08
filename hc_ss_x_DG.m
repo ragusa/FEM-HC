@@ -19,8 +19,8 @@ dat.hcv=1612.414;
 dat.width=[0.003175 0.0174115 0.0179195];
 bc.left.type=0; %0=neumann, 1=robin, 2=dirichlet
 bc.left.C=0; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
-bc.rite.type=2;
-bc.rite.C=200;
+bc.rite.type=1;
+bc.rite.C=50;
 dat.bc=bc; clear bc;
 
 nel_zone = [ 2 5 1];
@@ -94,15 +94,15 @@ if length(nel_zone)==3
     y3=a(5)*x3+a(6);
     
     plot(npar.xf,F,'.-',[x1 x2 x3],[y1 y2 y3],'r-'); hold all;
-    title('1D heat conduction problem, 3 zones, without T gap, Cartesian coordinates')
+    title('1D steady-state heat conduction, 3 zones, without T gap, Cartesian coordinates')
     xlabel('Width (m)')
-    ylabel('Temperature (C)')
+    ylabel('Temperature (°C)')
     legend('FEM','Analytical','Location','northoutside','Orientation','horizontal')
 else
     plot(npar.xf,F,'.-'); hold all;
-    title('1D heat conduction problem, n zones, without T gap, Cartesian coordinates')
+    title('1D steady-state heat conduction, n zones, without T gap, Cartesian coordinates')
     xlabel('Width (m)')
-    ylabel('Temperature (C)')
+    ylabel('Temperature (°C)')
     legend('FEM','Location','northoutside','Orientation','horizontal')
 end
 
