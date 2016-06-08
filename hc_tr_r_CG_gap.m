@@ -190,10 +190,10 @@ for iel=1:nel
     rhs(gn(iel,:)) = rhs(gn(iel,:)) + m*Jac*T_old(gn(iel,:))/delta_t + f*Jac;
 end
 
-A(g1,g1)=A(g1,g1)+dat.hgap*L(2)/2;
-A(g1,g2)=A(g1,g2)-dat.hgap*L(2)/2;
-A(g2,g1)=A(g2,g1)-dat.hgap*L(2)/2;
-A(g2,g2)=A(g2,g2)+dat.hgap*L(2)/2;
+A(g1,g1)=A(g1,g1)+dat.hgap*L(2);
+A(g1,g2)=A(g1,g2)-dat.hgap*L(2);
+A(g2,g1)=A(g2,g1)-dat.hgap*L(2);
+A(g2,g2)=A(g2,g2)+dat.hgap*L(2);
 
 % apply natural BC
 Dirichlet_nodes=[];
@@ -324,12 +324,12 @@ for num=1:npar.curve
 	name(color)=cellstr(strcat('time=',num2str(end_time)));
 	legend_graph(color,:)=name(color);
 	color=color+1;
-	legend(legend_graph);
+	legend(legend_graph,'Location','southwest');
 end
 
-title('1D time-dependent heat conduction problem, with T gap, cylindrical coordinates')
+title('1D transient heat conduction, with T gap, cylindrical coordinates')
 xlabel('Width (m)')
-ylabel('Temperature (C)')
+ylabel('Temperature (°C)')
 grid on
 
 return

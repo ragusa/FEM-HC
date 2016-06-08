@@ -1,6 +1,6 @@
-function F=hc_tr_r_CG
+function F=hc_tr_r_DG_gap
 % Solves the time-dependent heat conduction equation in 1-D r-geometry 
-% using CFEM without T gap.
+% using DFEM with T gap.
 % The conductivities and the volumetric sources can be spatially dependent.
 
 % clear the console screen
@@ -35,6 +35,7 @@ npar.delta_t=dat.duration/npar.n_time_steps;
 % number of the curves to plot, max 14 curves
 npar.curve=10; 
 
+gap_zone_ID=2;
 nel_zone = [ 20 100 5];
 
 % load the numerical parameters, npar, structure pertaining to numerics
@@ -49,6 +50,7 @@ if length(dat.esrc)~=length(nel_zone)
     error('not the same number of zones in dat.esrc and nel_zone');
 end
 npar.nel = sum(nel_zone);
+npar.nelgap = sum(nel_zone(1:gap_zone_ID));
 
 % domain
 tmp_width = [ 0 dat.width];
@@ -69,13 +71,13 @@ npar.iel2zon=iel2zon;
 % polynomial degree
 npar.porder=2;
 % nbr of dofs per variable
-npar.ndofs = npar.porder*npar.nel+1;
+npar.ndofs = (npar.porder+1)*npar.nel;
 % connectivity
 
 gn=zeros(npar.nel,npar.porder+1);
 gn(1,:)=linspace(1,npar.porder+1,npar.porder+1);
 for iel=2:npar.nel
-    gn(iel,:)=[gn(iel-1,end) , gn(iel-1,2:end)+npar.porder ];
+    gn(iel,:)=gn(iel-1,:) + npar.porder+1 ;
 end
 npar.gn=gn; clear gn;
 
@@ -97,7 +99,7 @@ n_time_steps=npar.n_time_steps;
 delta_t=npar.delta_t;
 curve=npar.curve;
 
-n=nel*porder+1;
+n=nel*(porder+1);
 
 % initial condition
 T=zeros(n,curve);
@@ -129,11 +131,13 @@ gn    = npar.gn;
 nel   = npar.nel;
 delta_t=npar.delta_t;
 L = dat.width;
-
+g = npar.nelgap;
+g1=g*(porder+1);
+g2=g*(porder+1)+1;
 % ideally, we would analyze the connectivity to determine nnz
 nnz=(porder+3)*nel; %this is an upperbound, not exact
 % n: linear system size
-n=nel*porder+1;
+n=nel*(porder+1);
 % allocate memory
 A=spalloc(n,n,nnz);
 rhs=zeros(n,1);
@@ -152,13 +156,15 @@ k=m;
 f=zeros(porder+1,1);
 % store shapeset
 [b,dbdx] =feshpln(xq,porder);
+% store shape set at edges
+[be,dbedx] =feshpln([-1;1],porder);
 
 % definition of the weak form:
 % int_domain (grad u D grad b) - int_bd_domain (b D grad u n) ...
 %      = int_domain (b rhs)
 
 % loop over elements
-for iel=1:nel
+for iel=1:npar.nel
     % element extremities
     x0=npar.x(iel);
     x1=npar.x(iel+1);
@@ -184,28 +190,74 @@ for iel=1:nel
     rhs(gn(iel,:)) = rhs(gn(iel,:)) + m*Jac*T_old(gn(iel,:))/delta_t + f*Jac;
 end
 
+xg=[1:(g-1) (g+1):(nel-1)] ;
+
+% loop on interior edges
+for ie=xg
+    % left (interior)/right (exterior) elements
+	ieli = ie;
+	iele = ie+1;
+    % values for 2 cells 1= left of edge, 2= right of edge
+    ce1=npar.iel2zon(ieli);
+    ce2=npar.iel2zon(iele);
+    % element extremities
+    x0=npar.x(ie);
+    x1=npar.x(ie+1);
+    x2=npar.x(ie+2);
+    % element lengths
+    d1=x1-x0;
+    d2=x2-x1;
+    % conductivity values
+    k1=dat.k{ce1}(x1);
+    k2=dat.k{ce2}(x1);
+    % compute local matrices + load vector
+    mee=x1*(k2/d2)*dbedx(1,:)'*be(1,:);
+    mei=x1*(k1/d1)*dbedx(end,:)'*be(1,:);
+    mie=x1*(-k2/d2)*dbedx(1,:)'*be(end,:);
+    mii=x1*(-k1/d1)*dbedx(end,:)'*be(end,:);
+    kap=2*x1*(k1/d1+k2/d2);
+    % assemble
+    A(gn(ieli,:),gn(ieli,:)) = A(gn(ieli,:),gn(ieli,:)) + mii' + mii;
+    A(gn(ieli,:),gn(iele,:)) = A(gn(ieli,:),gn(iele,:)) + mie' + mei;
+    A(gn(iele,:),gn(ieli,:)) = A(gn(iele,:),gn(ieli,:)) + mei' + mie;
+    A(gn(iele,:),gn(iele,:)) = A(gn(iele,:),gn(iele,:)) + mee' + mee;
+    % assemble
+    A(gn(ieli,end),gn(ieli,end)) = A(gn(ieli,end),gn(ieli,end))+kap;
+    A(gn(ieli,end),gn(iele,1))   = A(gn(ieli,end),gn(iele,1))  -kap;
+    A(gn(iele,1),gn(ieli,end))   = A(gn(iele,1),gn(ieli,end))  -kap;
+    A(gn(iele,1),gn(iele,1))     = A(gn(iele,1),gn(iele,1))    +kap;
+end
+
+A(g1,g1)=A(g1,g1)+dat.hgap*L(2);
+A(g1,g2)=A(g1,g2)-dat.hgap*L(2);
+A(g2,g1)=A(g2,g1)-dat.hgap*L(2);
+A(g2,g2)=A(g2,g2)+dat.hgap*L(2);
+
 % apply natural BC
-Dirichlet_nodes=[];
-Dirichlet_val=[];
+% element extremities
+xnm=npar.x(end-1);
+xn=npar.x(end);
+% element lengths
+dn=xn-xnm;
+% conductivity values
+kn=dat.k{npar.iel2zon(end)}(xn);
+% compute load vector
+kapn=8*kn/dn;
+
 switch dat.bc.rite.type
     case 0 % Neumann, int_bd_domain (b D grad u n) is on the RHS
         rhs(n)=rhs(n)+dat.bc.rite.C;
     case 1 % Robin
-        A(n,n)=A(n,n)+dat.hcv*L(3);
-        rhs(n)=rhs(n)+dat.hcv*dat.bc.rite.C*L(3);
+        A(n,n)=A(n,n)+L(3)*dat.hcv;
+        rhs(n)=rhs(n)+L(3)*dat.hcv*dat.bc.rite.C;
     case 2 % Dirichlet
-        Dirichlet_nodes=[Dirichlet_nodes n];
-        Dirichlet_val=[Dirichlet_val dat.bc.rite.C];
-end
-% apply Dirichlet BC
-for i=1:length(Dirichlet_nodes);% loop on the number of constraints
-    id=Dirichlet_nodes(i);      % extract the dof of a constraint
-    bcval=Dirichlet_val(i);
-    rhs=rhs-bcval*A(:,id);  % modify the rhs using constrained value
-    A(id,:)=0; % set all the id-th row to zero
-    A(:,id)=0; % set all the id-th column to zero (symmetrize A)
-    A(id,id)=1;            % set the id-th diagonal to unity
-    rhs(id)=bcval;         % put the constrained value in the rhs
+        plus_one =2;
+        A(gn(end,:),gn(end,:))=A(gn(end,:),gn(end,:))...
+            +L(2)*(kapn*be(plus_one,:)'*be(plus_one,:)...
+            -2*kn*be(plus_one,:)'   *dbedx(plus_one,:)/dn...
+            -2*kn*dbedx(plus_one,:)'*be(plus_one,:)   /dn);
+        rhs(gn(end,:))=rhs(gn(end,:))+L(2)*dat.bc.rite.C*...
+            ( kapn*be(plus_one,:)' -2*kn*dbedx(plus_one,:)'/dn );
 end
 
 % solve
@@ -293,10 +345,10 @@ function plot_solution(dat,npar,T)
 figure(1); hold all;
 
 % create x values for plotting FEM solution
-npar.xf=zeros(npar.nel*npar.porder+1,1);
+npar.xf=zeros(npar.nel*(npar.porder+1),1);
 for iel=1:npar.nel
-    ibeg = (iel-1)*npar.porder+1;
-    iend = (iel  )*npar.porder+1;
+    ibeg = (iel-1)*(npar.porder+1)+1;
+    iend = (iel  )*(npar.porder+1)  ;
     npar.xf(ibeg:iend)=linspace(npar.x(iel),npar.x(iel+1),npar.porder+1) ;
 end
 
@@ -314,7 +366,7 @@ for num=1:npar.curve
 	legend(legend_graph,'Location','southwest');
 end
 
-title('1D transient heat conduction, without T gap, cylindrical coordinates')
+title('1D transient heat conduction, with T gap, cylindrical coordinates')
 xlabel('Width (m)')
 ylabel('Temperature (°C)')
 grid on
