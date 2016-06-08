@@ -1,6 +1,6 @@
-function F=hc_tr_x_CG
+function F=hc_tr_x_CG_gap
 % Solves the time-dependent heat conduction equation in 1-D x-geometry 
-% using CFEM without T gap.
+% using CFEM with T gap.
 % The conductivities and the volumetric sources can be spatially dependent.
 
 % clear the console screen
@@ -37,6 +37,7 @@ npar.delta_t=dat.duration/npar.n_time_steps;
 % number of the curves to plot, max 14 curves
 npar.curve=10; 
 
+gap_zone_ID=2;
 nel_zone = [ 10 100 10];
 
 % load the numerical parameters, npar, structure pertaining to numerics
@@ -51,6 +52,7 @@ if length(dat.esrc)~=length(nel_zone)
     error('not the same number of zones in dat.esrc and nel_zone');
 end
 npar.nel = sum(nel_zone);
+npar.nelgap = sum(nel_zone(1:gap_zone_ID));
 
 % domain
 tmp_width = [ 0 dat.width];
@@ -71,7 +73,7 @@ npar.iel2zon=iel2zon;
 % polynomial degree
 npar.porder=2;
 % nbr of dofs per variable
-npar.ndofs = npar.porder*npar.nel+1;
+npar.ndofs = npar.porder*npar.nel+2;
 % connectivity
 
 gn=zeros(npar.nel,npar.porder+1);
@@ -79,6 +81,8 @@ gn(1,:)=linspace(1,npar.porder+1,npar.porder+1);
 for iel=2:npar.nel
     gn(iel,:)=[gn(iel-1,end) , gn(iel-1,2:end)+npar.porder ];
 end
+% adding the gap unknowns
+gn(npar.nelgap+1:end,1:end)=gn(npar.nelgap+1:end,1:end)+1;
 npar.gn=gn; clear gn;
 
 % solve system
@@ -99,7 +103,7 @@ n_time_steps=npar.n_time_steps;
 delta_t=npar.delta_t;
 curve=npar.curve;
 
-n=nel*porder+1;
+n=nel*porder+2;
 
 % initial condition
 T=zeros(n,curve);
@@ -130,11 +134,13 @@ porder= npar.porder;
 gn    = npar.gn;
 nel   = npar.nel;
 delta_t=npar.delta_t;
+g1 = gn(npar.nelgap,end);
+g2 = gn(npar.nelgap+1,1);
 
 % ideally, we would analyze the connectivity to determine nnz
 nnz=(porder+3)*nel; %this is an upperbound, not exact
 % n: linear system size
-n=nel*porder+1;
+n=nel*porder+2;
 % allocate memory
 A=spalloc(n,n,nnz);
 rhs=zeros(n,1);
@@ -184,6 +190,11 @@ for iel=1:nel
     A(gn(iel,:),gn(iel,:)) = A(gn(iel,:),gn(iel,:)) + m*Jac/delta_t + k/Jac;
     rhs(gn(iel,:)) = rhs(gn(iel,:)) + m*Jac*T_old(gn(iel,:))/delta_t + f*Jac;
 end
+
+A(g1,g1)=A(g1,g1)+dat.hgap;
+A(g1,g2)=A(g1,g2)-dat.hgap;
+A(g2,g1)=A(g2,g1)-dat.hgap;
+A(g2,g2)=A(g2,g2)+dat.hgap;
 
 % apply natural BC
 Dirichlet_nodes=[];
@@ -311,6 +322,7 @@ for iel=1:npar.nel
     iend = (iel  )*npar.porder+1;
     npar.xf(ibeg:iend)=linspace(npar.x(iel),npar.x(iel+1),npar.porder+1) ;
 end
+npar.xfi=[npar.xf(1:npar.nelgap*npar.porder+1);npar.xf(npar.nelgap*npar.porder+1:end)] ;
 
 nummax=npar.n_time_steps+1;
 increment=round(nummax/npar.curve);
@@ -319,14 +331,14 @@ end_time=0;
 for num=1:npar.curve
 	end_time=end_time+increment*npar.delta_t;
 	c=val_color(color);
-	plot(npar.xf,T(:,num),c);
+	plot(npar.xfi,T(:,num),c);
 	name(color)=cellstr(strcat('time=',num2str(end_time)));
 	legend_graph(color,:)=name(color);
 	color=color+1;
 	legend(legend_graph,'Location','southwest');
 end
 
-title('1D transient heat conduction, without T gap, Cartesian coordinates')
+title('1D transient heat conduction, with T gap, Cartesian coordinates')
 xlabel('Width (m)')
 ylabel('Temperature (°C)')
 grid on
