@@ -72,7 +72,13 @@ Rth = q_prime / ( Tf(1) - Tcool );
 % 0-D time-dependent
 % rhocp dT/dt + Rth(T-Tcool)=q
 % rhocp (Tnew-Told)/dt + Rth(Tnew-Tcool)=q
-rhocp=cp_fuel(1)*rho_fuel(1)/1e6; % kg/m3.J/kg/C
+rhocp=cp_fuel(1)*rho_fuel(1)/1e6; % kg/m3 . J/kg/C * conversion(m/cm)^3 = J/cm3-C 
+rhocpf=rhocp*pi*(R2^2-R1^2); % time surface of fuel, gives units of J/cm-C
+rhocp =rhocpf + cp_clad(1)*rho_clad(1)/1e6*pi*(R3^2-R2^2 + R1^2-0^2); % rhocp=rhocp*pi*(R3^2); % time surface of fuel, gives units of J/cm-C
+% rhocp=rhocpf;
+% rhocp = cp_fuel(1)*rho_fuel(1)/1e6*pi*R3^2;
+% [rhocp*pi*(R2^2-R1^2)  cp_clad(1)*rho_clad(1)/1e6*pi*(R3^2-R2^2 + R1^2-0^2)]
+
 
 time_end = 1e2;
 ntimes=50;
@@ -88,3 +94,5 @@ end
 t=linspace(0,time_end,ntimes+1);
 figure(20);
 plot(t,T);
+xlabel('time, s');
+ylabel('T, C');
