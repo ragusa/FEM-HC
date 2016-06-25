@@ -22,7 +22,7 @@ dat.cp{3}=@cp_clad; % J/kg-K
 dat.hcv=1612.414; % W/m^2-C
 dat.hgap=15764; % W/m^2-C
 dat.width=[0.003175 0.0174115 0.0179195]; % m
-dat.duration=10000; % s
+dat.duration=500; % s
 dat.Tinit=30; % Celsius
 bc.rite.type=1; % 0=neumann, 1=robin, 2=dirichlet
 bc.rite.C=50; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
@@ -30,10 +30,11 @@ dat.bc=bc; clear bc;
 
 % number of time points
 npar.n_time_steps=100; % total number of time steps to run
-npar.delta_t=dat.duration/npar.n_time_steps;
+npar.delta_t=dat.duration/npar.n_time_steps; % delta t
+nummax=npar.n_time_steps+1; % total number of time steps with initial temp
 
-% number of the curves to plot, max 14 curves
-npar.curve=10; 
+npar.curve=10; % number of the curves to plot, max 14 curves
+npar.increment=round(nummax/npar.curve); % increment number for curve plot
 
 nel_zone = [ 20 100 5];
 
@@ -95,25 +96,20 @@ nel   = npar.nel;
 porder= npar.porder;
 n_time_steps=npar.n_time_steps;
 delta_t=npar.delta_t;
-curve=npar.curve;
 
 n=nel*porder+1;
 
 % initial condition
-T=zeros(n,curve);
+T=zeros(n,n_time_steps+1);
 T_old=dat.Tinit*ones(n,1);
 
-nummax=n_time_steps+1;
-increment=round(nummax/curve);
-
-% loop over time
 end_time=0;
-for it=1:curve
-    end_time=end_time+increment*delta_t;
-    % solve the FME system for a given time step
+for it=1:n_time_steps
+    end_time=end_time+it*delta_t;
+    % solve the FEM system for a given time step
     T_old=assemble_solve(dat,npar,end_time,T_old);
-	% save solutions at different time points
-    T(:,it)=T_old;
+    % save solutions at different time points
+    T(:,it+1)=T_old;
 end
 
 return
@@ -300,18 +296,16 @@ for iel=1:npar.nel
     npar.xf(ibeg:iend)=linspace(npar.x(iel),npar.x(iel+1),npar.porder+1) ;
 end
 
-nummax=npar.n_time_steps+1;
-increment=round(nummax/npar.curve);
 color=1;
 end_time=0;
 for num=1:npar.curve
-	end_time=end_time+increment*npar.delta_t;
-	c=val_color(color);
-	plot(npar.xf,T(:,num),c);
-	name(color)=cellstr(strcat('time=',num2str(end_time)));
-	legend_graph(color,:)=name(color);
-	color=color+1;
-	legend(legend_graph,'Location','southwest');
+    end_time=end_time+npar.increment*npar.delta_t;
+    c=val_color(color);
+    plot(npar.xf,T(:,num*npar.increment+1),c);
+    name(color)=cellstr(strcat('time(s)=',num2str(end_time)));
+    legend_graph(color,:)=name(color);
+    color=color+1;
+    legend(legend_graph,'Location','southwest');
 end
 
 title('1D transient heat conduction, without T gap, cylindrical coordinates')

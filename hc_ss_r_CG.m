@@ -93,7 +93,7 @@ y3=a(4)*log(r3)+a(5);
 
 plot(npar.xf,F,'.-',r1,y1,'r-',r2,y2,'r-',r3,y3,'r-'); hold all;
 title('1D steady-state heat conduction, without T gap, cylindrical coordinates')
-legend('FEM','Analytical','Location','northoutside','Orientation','horizontal')
+legend('FEM','Analytical','Location','southwest')
 xlabel('Width (m)')
 ylabel('Temperature (C)')
 

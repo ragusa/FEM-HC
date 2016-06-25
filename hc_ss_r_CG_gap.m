@@ -14,14 +14,15 @@ dat.esrc{2}=@esrc; % W/m3
 dat.esrc{3}=@zero_function; % W/m3
 
 dat.hgap=15764; % W/m^2-C
-dat.hcv=1612.414; % W/m^2-C
+% dat.hcv=1612.414; % W/m^2-C
+dat.hcv=2574; % W/m^2-C % for comparison with Chance's thesis
 dat.width=[0.003175 0.0174115 0.0179195]; % m
 bc.rite.type=1; % 0=neumann, 1=robin, 2=dirichlet
 bc.rite.C=50; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
 dat.bc=bc; clear bc;
 
 gap_zone_ID=2;
-nel_zone = [ 6 15 2];
+nel_zone = [ 30 90 10];
 
 % load the numerical parameters, npar, structure pertaining to numerics
 % number of elements
@@ -96,7 +97,7 @@ y3=a(4)*log(r3)+a(5);
 
 plot(npar.xfi,F,'.-',r1,y1,'r-',r2,y2,'r-',r3,y3,'r-'); hold all;
 title('1D steady-state heat conduction, with T gap, cylindrical coordinates')
-legend('FEM','Analytical','Location','northoutside','Orientation','horizontal')
+legend('FEM','Analytical','Location','southwest')
 xlabel('Width (m)')
 ylabel('Temperature (C)')
 
