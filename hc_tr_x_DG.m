@@ -7,27 +7,27 @@ function F=hc_tr_x_DG
 clc; clear all; close all;
 % load the data structure with info pertaining to the physical problem
 dat.k{1}=@k_Zr; % W/m-K
-dat.k{2}=@k_fuel;
-dat.k{3}=@k_clad;
-dat.esrc{1}=@zero_functiont;
+dat.k{2}=@k_fuel; % W/m-K
+dat.k{3}=@k_clad; % W/m-K
+dat.esrc{1}=@zero_functiont; % W/m3
 dat.esrc{2}=@esrct; % W/m3
-dat.esrc{3}=@zero_functiont;
+dat.esrc{3}=@zero_functiont; % W/m3
 dat.rho{1}=@rho_Zr; % kg/m3
-dat.rho{2}=@rho_fuel;
-dat.rho{3}=@rho_clad;
+dat.rho{2}=@rho_fuel; % kg/m3
+dat.rho{3}=@rho_clad; % kg/m3
 dat.cp{1}=@cp_Zr; % J/kg-K
-dat.cp{2}=@cp_fuel;
-dat.cp{3}=@cp_clad;
+dat.cp{2}=@cp_fuel; % J/kg-K
+dat.cp{3}=@cp_clad; % J/kg-K
 
-dat.hcv=1612.414;
-dat.hgap=15764; % W/(m^2.C)
-dat.width=[0.003175 0.0174115 0.0179195];
-dat.duration=10000; % in sec
-dat.Tinit=30;
+dat.hcv=1612.414; % W/m^2-C
+dat.hgap=15764; % W/m^2-C
+dat.width=[0.003175 0.0174115 0.0179195]; % m
+dat.duration=10000; % s
+dat.Tinit=30; % Celsius
 bc.left.type=0; % 0=neumann, 1=robin, 2=dirichlet
 bc.left.C=0; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
-bc.rite.type=1;
-bc.rite.C=50;
+bc.rite.type=1; 
+bc.rite.C=50; 
 dat.bc=bc; clear bc;
 
 % number of time points

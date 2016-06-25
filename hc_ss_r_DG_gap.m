@@ -8,18 +8,18 @@ function F=hc_ss_r_DG_gap
 % clear the console screen
 clc; clear all; close all;
 % load the data structure with info pertaining to the physical problem
-dat.k{1}=@k_Zr;
-dat.k{2}=@k_fuel;
-dat.k{3}=@k_clad;
-dat.esrc{1}=@zero_function;
-dat.esrc{2}=@esrc;
-dat.esrc{3}=@zero_function;
+dat.k{1}=@k_Zr; % W/m-K
+dat.k{2}=@k_fuel; % W/m-K
+dat.k{3}=@k_clad; % W/m-K
+dat.esrc{1}=@zero_function; % W/m3
+dat.esrc{2}=@esrc; % W/m3
+dat.esrc{3}=@zero_function; % W/m3
 
-dat.hgap=15764;
-dat.hcv=1612.414;
-dat.width=[0.003175 0.0174115 0.0179195];
-bc.rite.type=1;
-bc.rite.C=50;
+dat.hgap=15764; % W/m^2-C
+dat.hcv=1612.414; % W/m^2-C
+dat.width=[0.003175 0.0174115 0.0179195]; % m
+bc.rite.type=1; % 0=neumann, 1=robin, 2=dirichlet
+bc.rite.C=50; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
 dat.bc=bc; clear bc;
 
 gap_zone_ID=2;

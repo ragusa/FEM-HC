@@ -8,15 +8,15 @@ function F=hc_ss_x_DG
 % clear the console screen
 clc; clear all; close all;
 % load the data structure with info pertaining to the physical problem
-dat.k{1}=@k_Zr;
-dat.k{2}=@k_fuel;
-dat.k{3}=@k_clad;
-dat.esrc{1}=@zero_function;
-dat.esrc{2}=@esrc;
-dat.esrc{3}=@zero_function;
+dat.k{1}=@k_Zr; % W/m-K
+dat.k{2}=@k_fuel; % W/m-K
+dat.k{3}=@k_clad; % W/m-K
+dat.esrc{1}=@zero_function; % W/m3
+dat.esrc{2}=@esrc; % W/m3
+dat.esrc{3}=@zero_function; % W/m3
 
-dat.hcv=1612.414;
-dat.width=[0.003175 0.0174115 0.0179195];
+dat.hcv=1612.414; % W/m^2-C
+dat.width=[0.003175 0.0174115 0.0179195]; % m
 bc.left.type=0; %0=neumann, 1=robin, 2=dirichlet
 bc.left.C=0; % (that data is C in: kdu/dn=C // u+k/hcv*du/dn =C // u=C)
 bc.rite.type=1;
