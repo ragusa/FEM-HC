@@ -96,13 +96,13 @@ if length(nel_zone)==3
     plot(npar.xf,F,'.-',[x1 x2 x3],[y1 y2 y3],'r-'); hold all;
     title('1D steady-state heat conduction, 3 zones, without T gap, Cartesian coordinates')
     xlabel('Width (m)')
-    ylabel('Temperature (∞C)')
+    ylabel('Temperature (°„C)')
     legend('FEM','Analytical','Location','northoutside','Orientation','horizontal')
 else
     plot(npar.xf,F,'.-'); hold all;
     title('1D steady-state heat conduction, n zones, without T gap, Cartesian coordinates')
     xlabel('Width (m)')
-    ylabel('Temperature (∞C)')
+    ylabel('Temperature (°„C)')
     legend('FEM','Location','northoutside','Orientation','horizontal')
 end
 

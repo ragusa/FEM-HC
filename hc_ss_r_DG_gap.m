@@ -98,13 +98,13 @@ if length(nel_zone)==3
     title('1D steady-state heat conduction, 3 zones, with T gap, cylindrical coordinates')
     legend('FEM','Analytical','Location','northoutside','Orientation','horizontal')
     xlabel('Width (m)')
-    ylabel('Temperature (∞C)')
+    ylabel('Temperature (°„C)')
 else
     plot(npar.xf,F,'.-'); hold all;
     title('1D steady-state heat conduction, n zones, with T gap, cylindrical coordinates')
     legend('FEM','Location','northoutside','Orientation','horizontal')
     xlabel('Width (m)')
-    ylabel('Temperature (∞C)')
+    ylabel('Temperature (°„C)')
 end
 
 return
