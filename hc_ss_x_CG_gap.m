@@ -99,7 +99,7 @@ y3=a(5)*x3+a(6);
 plot(npar.xfi,F,'.-',x1,y1,'r-',x2,y2,'r-',x3,y3,'r-'); hold all;
 title('1D steady-state heat conduction, with T gap, Cartesian coordinates')
 xlabel('Width (m)')
-ylabel('Temperature (°C)')
+ylabel('Temperature (C)')
 legend('FEM','Analytical','Location','northoutside','Orientation','horizontal')
 
 return
