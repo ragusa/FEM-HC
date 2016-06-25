@@ -101,7 +101,7 @@ else
     title('1D steady-state heat conduction, n zones, without T gap, cylindrical coordinates')
     legend('FEM','Location','northoutside','Orientation','horizontal')
     xlabel('Width (m)')
-    ylabel('Temperature (°„C)')
+    ylabel('Temperature (∞C)')
 end
 
 return

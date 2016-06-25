@@ -328,7 +328,7 @@ end
 
 title('1D transient heat conduction, without T gap, Cartesian coordinates')
 xlabel('Width (m)')
-ylabel('Temperature (¡ãC)')
+ylabel('Temperature (°C)')
 grid on
 
 return

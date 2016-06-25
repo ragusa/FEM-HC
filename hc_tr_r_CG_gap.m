@@ -329,7 +329,7 @@ end
 
 title('1D transient heat conduction, with T gap, cylindrical coordinates')
 xlabel('Width (m)')
-ylabel('Temperature (°„C)')
+ylabel('Temperature (∞C)')
 grid on
 
 return
